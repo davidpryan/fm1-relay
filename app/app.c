@@ -76,15 +76,93 @@ static void speak(void)                          /* a screen reader that starts 
     ann_tick(plat_ms());
 }
 
+/* the programs of the tracks that play over a link, sent when it connects (a device that missed PLAY's) */
+static void programs_to(uint32_t po)
+{
+    uint32_t tr;
+    for (tr = 0; tr < NTRK; tr++)
+        if ((P.trk[tr].ports & po) && P.trk[tr].prog != PROG_NONE)
+            midi_send(pkt2(0xC0u | (P.trk[tr].chan & 15u), P.trk[tr].prog), po);
+}
+
+/* AUTO: back to the last device at power-on and when it is lost. While nothing is connected it looks in windows of
+ * 12 s every 20 s (a scan costs the radio's time), and connects as soon as the name is heard; after a failed try it
+ * waits 10 s. A device let go by hand pauses it until one is picked again */
+static void bt_auto(uint32_t now, int *scan)
+{
+    static uint32_t t0, hold_until;
+    int n, i;
+    char name[21];
+    if (!FM1B_BLE_CENTRAL || set.ble_off || !set.bt_auto || !set.bt_name[0] || ui.bt_paused || btdev_busy()) {
+        t0 = now;
+        return;
+    }
+    if ((int32_t)(hold_until - now) > 0)
+        return;
+    if ((now - t0) % 20000u < 12000u)
+        *scan = 1;
+    n = btdev_count();
+    for (i = 0; i < n; i++)
+        if (btdev_found(i, name, 0)) {
+            uint32_t k = 0;
+            while (name[k] && name[k] == set.bt_name[k])
+                k++;
+            if (!name[k] && !set.bt_name[k]) {
+                btdev_choose(i);
+                if (btdev_save() == BTDEV_CONNECTING)
+                    app_say("CONNECTING", name);
+                hold_until = now + 10000u;
+                return;
+            }
+        }
+}
+
 static void events(void)                         /* Bluetooth devices and the USB host: what happened */
 {
-    int ev;
-    btdev_page(ui.page == PG_GLOBAL && ui.sub[PG_GLOBAL] == 2u && !set.ble_off);
-    while ((ev = btdev_event()) != BTDEV_NONE)
-        if (ev != BTDEV_CONNECTING)
+    static int pk_was = -1;
+    int ev, scan = ui.page == PG_GLOBAL && ui.sub[PG_GLOBAL] == GL_PORTS && !set.ble_off, pk;
+    uint32_t now = plat_ms();
+    bt_auto(now, &scan);
+    btdev_page(scan);
+    while ((ev = btdev_event()) != BTDEV_NONE) {
+        if (ev == BTDEV_CONNECTED) {             /* remembered for AUTO; its tracks' programs sent */
+            const char *nm = btdev_name();
+            uint32_t k = 0;
+            int same = 1;
+            for (k = 0; k + 1u < sizeof set.bt_name && (nm[k] || set.bt_name[k]); k++)
+                if (nm[k] != set.bt_name[k]) {
+                    same = 0;
+                    break;
+                }
+            if (!same) {
+                for (k = 0; k + 1u < sizeof set.bt_name && nm[k]; k++)
+                    set.bt_name[k] = nm[k];
+                set.bt_name[k] = 0;
+                settings_save();
+            }
+            ui.bt_paused = 0;
+            programs_to(PO_BLEDEV);
+            app_say("CONNECTED", nm);
+        } else if (ev == BTDEV_COMPUTER) {
+            programs_to(PO_BLE);
+            app_say("BT HOST", "CONNECTED");
+        } else if (ev != BTDEV_CONNECTING) {
             app_say(btdev_word(ev), btdev_name());
+        }
+    }
+    pk = FM1B_BLE ? plat_ble_passkey() : -1;     /* a device asks for a code: show it until the pairing ends */
+    if (pk != pk_was) {
+        pk_was = pk;
+        if (pk >= 0) {
+            char t[12];
+            i_text(pk, t);
+            app_say("PASSKEY", t);
+            ui.msg_until = now + 30000u;
+        }
+        ui.redraw = 1;
+    }
     switch (plat_usb_host_msg()) {
-    case USBH_MSG_MIDI: app_say("USB", "DEVICE CONNECTED"); break;
+    case USBH_MSG_MIDI: app_say("USB", "DEVICE CONNECTED"); programs_to(PO_USB); break;
     case USBH_MSG_NOMIDI: app_say("USB DEVICE", "HAS NO MIDI"); break;
     case USBH_MSG_LOW: app_say("USB DEVICE", "NEEDS POWER"); break;
     case USBH_MSG_LOST: app_say("USB DEVICE", "LOST"); break;
@@ -164,6 +242,8 @@ int app_expect(const char *what, int *got)
         *got = ui.group;
     else if (!strcmp(what, "card"))           /* the button whose help card shows, -1 none */
         *got = ui.card == NB ? -1 : ui.card;
+    else if (!strcmp(what, "out_base"))       /* the ms everything waits for the earliest port */
+        *got = (int)out_base;
     else if (!strcmp(what, "slot"))
         *got = set.slot;
     else if (!strcmp(what, "save_pending"))

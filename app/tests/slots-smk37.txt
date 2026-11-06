@@ -28,7 +28,7 @@ expect dirty 0
 # GLOBAL > PROJECTS: slot 2, SEL > SAVE HERE
 tap GLO
 wait 30
-turn SELECT 3
+turn SELECT 4
 wait 30
 turn K1 1
 wait 30

@@ -327,25 +327,51 @@ static int project_load(uint32_t slot)
     return 1;
 }
 
-/* the settings: the unit's, not the project's */
-#define SET_MAGIC 0x53594C52u                    /* "RLYS" */
+/* the settings: the unit's, not the project's (its connections, how each port is timed, the slot in use) */
+#define SET_MAGIC 0x32594C52u                    /* "RLY2": 0.4's record (0.3's "RLYS" loads as the defaults) */
 typedef struct {
     uint32_t magic;
     uint8_t ble_off, trs_off, usb_host, slot;    /* slot: the project slot in use (loaded at power-on) */
+    int8_t port_ms[NPT][2];                      /* each port's notes and clock, ms: + late, - early */
+    uint8_t port_clock[NPT];                     /* PC_*: the clock, and start / stop, to each port */
+    uint8_t bt_auto;                             /* connect to the last Bluetooth device at power-on and when lost */
+    char bt_name[22];                            /* that device's name */
+    uint8_t rsv[2];
 } settings_t;
 static settings_t set;
 
+static void settings_defaults(void)
+{
+    uint32_t i, p;
+    uint8_t *b = (uint8_t *)&set;
+    for (i = 0; i < sizeof set; i++)
+        b[i] = 0;
+    set.magic = SET_MAGIC;
+    for (p = 0; p < NPT; p++)
+        set.port_clock[p] = PC_TRANSPORT;
+    set.bt_auto = 1;
+}
+
+static void settings_apply(void)                 /* the ports' timing to the sequencer */
+{
+    uint32_t p, k, f = plat_lock();
+    for (p = 0; p < NPT; p++) {
+        for (k = 0; k < 2u; k++)
+            port_ms[p][k] = (int8_t)clamp(set.port_ms[p][k], -120, 120);
+        port_clock[p] = set.port_clock[p] < NPC ? set.port_clock[p] : PC_TRANSPORT;
+    }
+    ports_timing();
+    plat_unlock(f);
+}
+
 static void settings_load(void)
 {
-    if (plat_store_load(OBJ_SETTINGS, &set, sizeof set) != (int)sizeof set || set.magic != SET_MAGIC) {
-        set.magic = SET_MAGIC;
-        set.ble_off = 0;
-        set.trs_off = 0;
-        set.usb_host = 0;
-        set.slot = 0;
-    }
+    if (plat_store_load(OBJ_SETTINGS, &set, sizeof set) != (int)sizeof set || set.magic != SET_MAGIC)
+        settings_defaults();
     if (set.slot >= NSLOTS)
         set.slot = 0;
+    set.bt_name[sizeof set.bt_name - 1u] = 0;
+    settings_apply();
 }
 
 static void settings_save(void)

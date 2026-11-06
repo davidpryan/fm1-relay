@@ -4,7 +4,7 @@ RELAY-16 turns the M-VAVE FM-1 or SMK-37 into a sequencer for other instruments.
 sixteen tracks play other gear over MIDI. This manual covers both units. Where the SMK-37 differs, its controls are in
 brackets.
 
-**Status:** version 0.3 has not been tried on a unit yet. It builds for both boards and passes its tests in
+**Status:** version 0.4 has not been tried on a unit yet. It builds for both boards and passes its tests in
 fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, at hand.
 
 - [Quick start: a beat on a LOOM-8 FM-1](#quick-start-a-beat-on-a-loom-8-fm-1)
@@ -22,6 +22,7 @@ fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, a
 - [Global](#global)
 - [Saving and the four projects](#saving-and-the-four-projects)
 - [Playing a LOOM-8 FM-1](#playing-a-loom-8-fm-1)
+- [Two LOOM-8s, and other firmwares over Bluetooth](#two-loom-8s-and-other-firmwares-over-bluetooth)
 - [MIDI](#midi)
 - [Installing and going back](#installing-and-going-back)
 
@@ -280,15 +281,19 @@ The song changes scene at the bar. The menu plays the song from the slot picked,
 
 ![Global, page 1: the tempo, sending MIDI clock](img/screen-global.png "Global")
 
-Press **GLO** [GLOBE] and turn SELECT through five pages:
+Press **GLO** [GLOBE] and turn SELECT through six pages:
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
 | 1 Clock | TEMPO, 30-300 | CLOCK: internal, send (clock, start and stop on every port), receive (follows a clock coming in; its own tempo while none comes) | LAUNCH: at the bar, or now | THRU: MIDI coming in plays the selected track |
 | 2 Key | ROOT | SCALE (12) | KEYS OCT: the keys' octave | |
-| 3 Ports | USB: COMPUTER, or HOST (a synth or an FM-1 through a powered hub) | BLUETOOTH on or off | BT DEVICE: picks one of those around; SEL > BT CONNECT connects or lets it go | [TRS OUT on or off] |
-| 4 Projects | SLOT: the four slots (below) | | | |
-| 5 About | the version, and the MIDI messages in and out on each port | | | |
+| 3 Ports | USB: DEVICE (a computer), or HOST (a synth or an FM-1 through a powered hub) | BLUETOOTH: OFF, ON, or AUTO (on, and back to the last device by itself) | BT DEVICE: picks one of those around; SEL > BT CONNECT connects or lets it go | [TRS OUT on or off] |
+| 4 Timing | PORT: USB [USB+TRS], BT HOST or BT DEVICE | NOTES: that port's notes and CCs, -120 to +120 ms | CLOCK AT: its clock the same way | CLOCK: off, clock, or +start (clock, start and stop) |
+| 5 Projects | SLOT: the four slots (below) | | | |
+| 6 About | the version, and the MIDI messages in and out on each port | | | |
+
+The Ports page lists the Bluetooth devices around, with their signal strength, and shows a passkey when a device
+asks for one: type it on the device. The Timing page is explained below.
 
 ## Saving and the four projects
 
@@ -297,7 +302,7 @@ Press **GLO** [GLOBE] and turn SELECT through five pages:
 **SAVE** [BT] saves the project into its slot.
 - **While playing:** writing the flash would stop everything for a moment, so the header says SAVE AT STOP, and the
   project saves as soon as the playing stops. That includes a stop sent by a clock coming in.
-- **The four slots:** GLOBAL page 4 lists them, each with its tempo and size. Pick one with KNOB 1, then SEL.
+- **The four slots:** GLOBAL page 5 lists them, each with its tempo and size. Pick one with KNOB 1, then SEL.
 - **LOAD PROJECT** loads it, asking first if what is playing has unsaved changes.
 - **SAVE HERE** saves into it, and it becomes the slot in use. It asks first if the slot holds another project.
 - **CLEAR SLOT** empties it, asking first.
@@ -320,11 +325,44 @@ LOOM-8's tracks 1-8 listen on channels 1-8, and a new RELAY-16 project matches: 
 - **The kit's notes:** T1 sends LOOM-8's eleven drum keys as the notes of its black keys, F#3 to F#5. That mapping
   hasn't been checked on a unit. If a lane plays the wrong drum, set its note on TRACK page 2 (LANE NOTE).
 
+## Two LOOM-8s, and other firmwares over Bluetooth
+
+RELAY-16 has two links at once: USB (or, on an SMK-37, the TRS jack, which carries the same stream) and one Bluetooth
+MIDI device. Each track picks its channel and its ports, so the 16 tracks can be split between two instruments.
+
+**Two LOOM-8 FM-1s, all 16 tracks.** Each LOOM-8 needs channels 1-8, so each takes a link of its own:
+1. LOOM-8 A on USB (GLOBAL page 3, USB to HOST, a powered hub) or on the SMK-37's TRS jack: T1-T8 as they are.
+2. LOOM-8 B on Bluetooth: GLOBAL page 3, pick it with KNOB 3, then SEL > BT CONNECT. With BLUETOOTH on AUTO,
+   RELAY-16 connects to it again by itself at power-on and whenever the link drops.
+3. T9-T16: on TRACK, give them channels 1-8 and set PORTS to BT DEVICE. Give T9 the LOOM-8 KIT device.
+
+![GLOBAL page 4, Timing: BT DEVICE's notes 20 ms early, so everything else waits 20 ms](img/screen-timing.png "Timing")
+
+**Timing (GLOBAL page 4).** Bluetooth takes its time. Notes reach a Bluetooth device 10-20 ms after USB's, and a
+LOOM-8 plays a clock that comes over Bluetooth by its timestamps, about 75 ms late on purpose. Its notes play as they
+arrive. So each port's notes and clock can go early (minus) or late (plus):
+- **Notes for LOOM-8 B:** PORT to BT DEVICE, then NOTES to about -15 ms. Tune it by ear against LOOM-8 A: a fast
+  hi-hat on both shows the gap.
+- **Clock for LOOM-8 B:** CLOCK AT to -75 ms, so its own sequencer, arpeggios and tempo effects line up.
+- **How early works:** nothing can be sent before the music happens, so everything RELAY-16 sends waits as long as
+  the earliest setting, and the others go that much later. The page says how long. The keys you play live go at
+  once.
+
+**Other firmwares.** A firmware that starts its own sequencer when it hears a MIDI start can be given the clock
+without start and stop (CLOCK: clock), or no clock at all (CLOCK: off). Any program change a track has is sent again
+when its device connects, and a passkey a device asks for is shown on GLOBAL page 3. A firmware that listens on fixed
+channels needs its own link: on one link, a LOOM-8 reacts to almost every channel (1-8 its tracks, 9-10 its effects,
+11 its scenes, 12-16 its selected track).
+
+**Limits.** One device on USB at a time, and one Bluetooth link: while RELAY-16 is connected to a Bluetooth device, a
+computer can't connect to it over Bluetooth. FM-1 to FM-1 over Bluetooth has only been tested in fm1-base's
+simulation.
+
 ## MIDI
 
-- **Out:** each track's notes, locks, lanes and program changes go out on its channel to its ports. The SMK-37's TRS
-  jack carries everything USB sends, and also tracks set to TRS alone. Clock, start and stop go to every port when
-  CLOCK is *send*.
+- **Out:** each track's notes, locks, lanes and program changes go out on its channel to its ports, each port at its
+  own timing (GLOBAL page 4). The SMK-37's TRS jack carries everything USB sends, and also tracks set to TRS alone.
+  With CLOCK on *send*, clock, start and stop go to every port that takes them (GLOBAL page 4, CLOCK).
 - **In:** notes from USB, Bluetooth and (FM-1) the TRS jack play the selected track when THRU is on, and record
   while recording. With THRU on, pitch bend, pressure and CCs go to the selected track's channel too.
 - **Clock in:** with CLOCK on *receive*, clock, start, continue and stop drive RELAY-16.

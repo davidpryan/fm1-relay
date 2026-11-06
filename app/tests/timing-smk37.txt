@@ -1,0 +1,36 @@
+# GLOBAL > TIMING (the SMK-37): BT DEVICE's notes 20 ms early, so USB's wait 20 ms (the kit track: T1)
+wait 600
+tap GLO
+wait 30
+turn SELECT 3
+wait 30
+turn K1 2
+wait 30
+turn K2 -4
+wait 30
+expect out_base 20
+wait 1500
+shot timing.png
+tap SEQ
+wait 30
+pad 0 down 100
+wait 20
+pad 0 up
+wait 30
+expect note0 54
+out
+press PLAY
+wait 10
+expect_no_out USB 90 36 64
+wait 40
+expect_out USB 90 36 64
+release PLAY
+tap PLAY
+wait 30
+expect playing 0
+# BT DEVICE back to 0 ms: nothing waits
+tap GLO
+wait 30
+turn K2 4
+wait 30
+expect out_base 0

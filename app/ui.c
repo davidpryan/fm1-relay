@@ -9,8 +9,8 @@
  * The FM-1's names are used below (SEL, HOME ...); the screen shows the SMK-37's own on the SMK (draw.c). */
 
 enum { PG_STEPS, PG_TRACK, PG_LANES, PG_PERF, PG_OVER, PG_GEN, PG_GLOBAL, PG_ARR, PG_SONG, NPG };
-static const uint8_t PG_SUBS[NPG] = {1, 2, 2, 1, 1, 2, 5, 1, 1};
-enum { GL_CLOCK, GL_KEY, GL_PORTS, GL_PROJECTS, GL_ABOUT };
+static const uint8_t PG_SUBS[NPG] = {1, 2, 2, 1, 1, 2, 6, 1, 1};
+enum { GL_CLOCK, GL_KEY, GL_PORTS, GL_TIMING, GL_PROJECTS, GL_ABOUT };
 enum { GR_NOTE, GR_TIME, GR_LOGIC, GR_LOCK, NGR };
 
 typedef struct {
@@ -55,6 +55,8 @@ static struct {
     uint8_t card;                                /* a button's help card on the screen (B_*), NB none */
     uint8_t hold_b, hold_clean;                  /* the button held alone (NB none), nothing else touched since */
     uint32_t hold_t;
+    uint8_t tm_port;                             /* GLOBAL > TIMING: the port the knobs set (PT_*) */
+    uint8_t bt_paused;                           /* the Bluetooth device let go by hand: no reconnecting until picked */
 } ui;
 #define CARD_MS 1000u                            /* a button held alone this long shows its card */
 
@@ -115,6 +117,12 @@ static void note_text(uint32_t n, char *b)
     i_text((int32_t)(n / 12u) - 1, o);
     s_cat(b, o);
 }
+static void ms_text(int32_t ms, char *t)          /* a port's offset: "0 ms", "-15 ms" (early), "+10 ms" (late) */
+{
+    signed_text(ms, t);
+    s_cat(t, " ms");
+}
+
 static void tempo_text(uint32_t b10, char *t)
 {
     char f[4];
@@ -712,6 +720,7 @@ static void menu_do(uint32_t a)
     case MA_PANIC: panic_all(); app_say("ALL NOTES", "OFF"); break;
     case MA_BT_CONNECT: {
         int ev = btdev_save();
+        ui.bt_paused = ev == BTDEV_LET_GO;       /* let go by hand: auto-connect waits until a device is picked */
         app_say(btdev_word(ev), btdev_name());
         break;
     }
@@ -1017,8 +1026,8 @@ static void knobs_get(knob_t k[4])
             knob_set(&k[2], "KEYS OCT", t, -1);
             break;
         case 2:
-            knob_set(&k[0], "USB", set.usb_host ? "HOST" : "COMPUTER", -1);
-            knob_set(&k[1], "BLUETOOTH", set.ble_off ? "OFF" : "ON", -1);
+            knob_set(&k[0], "USB", set.usb_host ? "HOST" : "DEVICE", -1);
+            knob_set(&k[1], "BLUETOOTH", set.ble_off ? "OFF" : set.bt_auto ? "AUTO" : "ON", -1);
             if (FM1B_BLE_CENTRAL) {
                 char name[21];
                 if (btdev_found(btdev_pick(), name, 0)) {
@@ -1032,6 +1041,18 @@ static void knobs_get(knob_t k[4])
             knob_set(&k[3], "TRS OUT", set.trs_off ? "OFF" : "ON", -1);
 #endif
             break;
+        case GL_TIMING: {
+            static const char *const PN[NPT] = {PLAT_SMK37 ? "USB+TRS" : "USB", "BT HOST", "BT DEVICE"};
+            static const char *const CN[NPC] = {"OFF", "CLOCK", "+START"};
+            uint32_t p = ui.tm_port % NPT;
+            knob_set(&k[0], "PORT", PN[p], -1);
+            ms_text(set.port_ms[p][0], t);
+            knob_set(&k[1], "NOTES", t, (set.port_ms[p][0] + 120) * 100 / 240);
+            ms_text(set.port_ms[p][1], t);
+            knob_set(&k[2], "CLOCK AT", t, (set.port_ms[p][1] + 120) * 100 / 240);
+            knob_set(&k[3], "CLOCK", CN[set.port_clock[p] % NPC], -1);
+            break;
+        }
         case GL_PROJECTS:
             i_text(ui.proj_sel + 1, t);
             knob_set(&k[0], "SLOT", t, ui.proj_sel * 100 / (NSLOTS - 1));
@@ -1248,12 +1269,16 @@ static void knob_turn(uint32_t k, int32_t d)
                 plat_usb_host(set.usb_host);
                 settings_save();
                 app_say("USB", set.usb_host ? "HOST: POWERED HUB" : "COMPUTER");
-            } else if (k == 1) {
-                set.ble_off = d < 0;
+            } else if (k == 1) {                 /* OFF, ON, AUTO (on, and back to the last device by itself) */
+                int32_t v = set.ble_off ? 0 : set.bt_auto ? 2 : 1;
+                v = step_clamp(v, d, 0, 2);
+                set.ble_off = v == 0;
+                set.bt_auto = v == 2;
                 plat_ble_enable(!set.ble_off);
                 settings_save();
             } else if (k == 2 && FM1B_BLE_CENTRAL) {
                 btdev_choose(btdev_pick() + d);
+                ui.bt_paused = 0;
             }
 #if PLAT_SMK37
             else if (k == 3) {
@@ -1264,6 +1289,20 @@ static void knob_turn(uint32_t k, int32_t d)
 #endif
             ui.redraw = 1;
             return;
+        case GL_TIMING: {
+            uint32_t p = ui.tm_port % NPT;
+            int32_t step = (ui.btn >> B_HOME & 1u) ? 1 : 5;   /* 5 ms a detent; HOME held: 1 */
+            if (k == 0)
+                ui.tm_port = (uint8_t)step_clamp(ui.tm_port, d, 0, NPT - 1);
+            else if (k == 1 || k == 2)
+                set.port_ms[p][k - 1u] = (int8_t)step_clamp(set.port_ms[p][k - 1u], d * step, -120, 120);
+            else
+                set.port_clock[p] = (uint8_t)step_clamp(set.port_clock[p], d, 0, NPC - 1);
+            if (k)
+                settings_save(), settings_apply();
+            ui.redraw = 1;
+            return;
+        }
         case GL_PROJECTS:
             if (k == 0)
                 ui.proj_sel = (uint8_t)step_clamp(ui.proj_sel, d, 0, NSLOTS - 1);

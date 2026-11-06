@@ -486,39 +486,86 @@ static void draw_global_page(void)
         }
         cv_text(5, 94, &FONT_XS, "tracks with IN KEY on (Track, page 2) snap to it", K_DIM);
         break;
-    case 2: {
+    case GL_PORTS: {
         int32_t y = 2;
+        int pk = FM1B_BLE ? plat_ble_passkey() : -1;
         cv_text(5, y, &FONT_XS, "USB", K_DIM);
         if (set.usb_host) {
             const char *nm = plat_usb_host_name();
-            cv_text(60, y, &FONT_XS, plat_usb_host_state() == USBH_CONNECTED ? (nm[0] ? nm : "device") :
+            cv_text(68, y, &FONT_XS, plat_usb_host_state() == USBH_CONNECTED ? (nm[0] ? nm : "device") :
                                      "host: waiting (powered hub)", K_FG);
         } else {
-            cv_text(60, y, &FONT_XS, "computer", K_FG);
+            cv_text(68, y, &FONT_XS, "computer", K_FG);
         }
-        y += 16;
+        y += 15;
         cv_text(5, y, &FONT_XS, "BT HOST", K_DIM);
-        cv_text(60, y, &FONT_XS, set.ble_off ? "off" : plat_ble_connected() ? "connected" : "advertising", K_FG);
-        y += 16;
+        cv_text(68, y, &FONT_XS, set.ble_off ? "off" : plat_ble_connected() ? "connected" : "advertising", K_FG);
+        y += 15;
         cv_text(5, y, &FONT_XS, "BT DEVICE", K_DIM);
         if (FM1B_BLE_CENTRAL) {
             btdev_title(t);
-            cv_text(60, y, &FONT_XS, t, btdev_ready() ? K_OK : K_FG);
-            y += 16;
-            for (i = 0; i < 4u; i++) {
-                char nm[21];
-                if (!btdev_found((int)i, nm, 0))
+            cv_text(68, y, &FONT_XS, t, btdev_ready() ? K_OK : K_FG);
+            y += 15;
+            if (pk >= 0) {                       /* a device asks for a code: type this one on it */
+                char n[12];
+                i_text(pk, n);
+                cv_text(5, y, &FONT_XS, "PASSKEY", K_HI);
+                cv_text(68, y - 3, &FONT_M, n, K_HI);
+                y += 22;
+            }
+            for (i = 0; i < 5u && y < 112; i++) {
+                char nm[21], r[8];
+                int rssi = 0;
+                if (!btdev_found((int)i, nm, &rssi))
                     break;
-                cv_text(70, y, &FONT_XS, nm, (int)i == btdev_pick() ? K_HI : K_DIM);
+                nm[16] = 0;
+                cv_text(78, y, &FONT_XS, nm, (int)i == btdev_pick() ? K_HI : K_DIM);
                 if ((int)i == btdev_pick())
-                    cv_text(60, y, &FONT_XS, ">", K_HI);
+                    cv_text(68, y, &FONT_XS, ">", K_HI);
+                i_text(rssi, r);
+                cv_text(210, y, &FONT_T, r, K_DIM);
                 y += 14;
+            }
+            if (set.bt_auto && set.bt_name[0] && !btdev_busy()) {
+                s_cpy(t, ui.bt_paused ? "auto: paused (pick one)" : "auto: looking for ");
+                if (!ui.bt_paused)
+                    s_cat(t, set.bt_name);
+                t[30] = 0;
+                cv_text(5, 103, &FONT_T, t, K_DIM);
             }
         }
 #if PLAT_SMK37
         cv_text(5, 116, &FONT_XS, "TRS OUT", K_DIM);
-        cv_text(60, 116, &FONT_XS, set.trs_off ? "off" : "on: the jack sends", K_FG);
+        cv_text(68, 116, &FONT_XS, set.trs_off ? "off" : "on: the jack sends", K_FG);
 #endif
+        break;
+    }
+    case GL_TIMING: {
+        static const char *const PN[NPT] = {PLAT_SMK37 ? "USB+TRS" : "USB", "BT HOST", "BT DEVICE"};
+        static const char *const CN[NPC] = {"off", "clock", "+start"};
+        cv_text(5, 2, &FONT_T, "PORT", K_DIM);
+        cv_text(84, 2, &FONT_T, "NOTES", K_DIM);
+        cv_text(134, 2, &FONT_T, "CLOCK AT", K_DIM);
+        cv_text(186, 2, &FONT_T, "SENDS", K_DIM);
+        for (i = 0; i < NPT; i++) {
+            int32_t y = 16 + (int32_t)i * 20;
+            if (i == ui.tm_port)
+                cv_rect(2, y - 2, 236, 18, K_LINE);
+            cv_text(5, y, &FONT_XS, PN[i], i == ui.tm_port ? K_HI : K_FG);
+            ms_text(set.port_ms[i][0], t);
+            cv_text(84, y, &FONT_XS, t, set.port_ms[i][0] ? K_HI : K_DIM);
+            ms_text(set.port_ms[i][1], t);
+            cv_text(134, y, &FONT_XS, t, set.port_clock[i] && set.port_ms[i][1] ? K_HI : K_DIM);
+            cv_text(186, y, &FONT_XS, CN[set.port_clock[i] % NPC], set.port_clock[i] ? K_FG : K_DIM);
+        }
+        cv_text(5, 80, &FONT_XS, "- early, + late. A LOOM-8 on Bluetooth plays", K_DIM);
+        cv_text(5, 94, &FONT_XS, "its clock ~75 ms late: CLOCK AT -75 there.", K_DIM);
+        if (out_base) {
+            s_cpy(t, "everything waits ");
+            i_text((int32_t)out_base, t + text_len(t));
+            s_cat(t, " ms for the earliest");
+            cv_text(5, 112, &FONT_XS, t, K_FG);
+        }
         break;
     }
     case GL_PROJECTS:

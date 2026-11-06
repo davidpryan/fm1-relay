@@ -114,6 +114,101 @@ static uint32_t pkt2(uint32_t st, uint32_t d1)
 }
 #define PKT_RT(b) (0x0Fu | (uint32_t)(b) << 8)
 
+/* ------------------------------------------------------------------- the ports' timing --- */
+/* Each port's output can go early or late, notes and clock apart (GLOBAL > TIMING): a LOOM-8 plays a clock that comes
+ * over Bluetooth by its timestamps, about 75 ms late, while its notes play as they come. Early cannot be done before
+ * the music happens, so everything the sequencer sends waits out_base ms (the earliest port's earliness), and each
+ * port then goes at out_base + its offset. The keys played live go at once, whatever the offsets. And each port takes
+ * the clock or not, with start and stop or not (a firmware that starts its own sequencer on a start). */
+enum { PT_USB, PT_BLE, PT_BLEDEV, NPT };               /* USB (with the SMK-37's TRS jack), BT host, BT device */
+enum { PC_OFF, PC_CLOCK, PC_TRANSPORT, NPC };
+static const uint8_t PT_PO[NPT] = {PO_USB | PO_TRS, PO_BLE, PO_BLEDEV};
+static int8_t port_ms[NPT][2] = {{0, 0}, {0, 0}, {0, 0}};   /* [port][0 notes, 1 clock]: ms, + late, - early */
+static uint8_t port_clock[NPT] = {PC_TRANSPORT, PC_TRANSPORT, PC_TRANSPORT};
+static uint32_t out_base;                               /* ms everything the sequencer sends waits */
+
+static void ports_timing(void)                          /* after a change of port_ms or port_clock */
+{
+    int32_t least = 0;
+    uint32_t p;
+    for (p = 0; p < NPT; p++) {
+        if (port_ms[p][0] < least)
+            least = port_ms[p][0];
+        if (port_clock[p] != PC_OFF && port_ms[p][1] < least)
+            least = port_ms[p][1];
+    }
+    out_base = (uint32_t)-least;
+}
+
+typedef struct {
+    uint32_t due;                                       /* plat_ms */
+    uint32_t pkt;
+    uint8_t ports, off, rsv[2];
+} dl_t;
+#define NDL 512u
+static dl_t dlq[NDL];
+static uint32_t ndl;
+
+/* what the sequencer sends: to each port at its time (kind 0 notes and CCs, 1 clock and transport) */
+static void out_at(uint32_t pkt, uint32_t ports, uint32_t kind, int off)
+{
+    uint32_t p, now = plat_ms();
+    for (p = 0; p < NPT; p++) {
+        uint32_t po = ports & PT_PO[p];
+        int32_t d;
+        if (!po)
+            continue;
+        d = (int32_t)out_base + port_ms[p][kind];
+        if (d <= 0)
+            midi_send(pkt, po);
+        else if (ndl < NDL) {
+            dl_t *e = &dlq[ndl++];
+            e->due = now + (uint32_t)d;
+            e->pkt = pkt;
+            e->ports = (uint8_t)po;
+            e->off = (uint8_t)off;
+        } else if (off) {
+            midi_send(pkt, po);                         /* (full: a note-off now rather than never) */
+        }
+    }
+}
+
+static void dl_run(void)                                /* every millisecond: what is due, note-offs first */
+{
+    uint32_t i, pass, now = plat_ms();
+    for (pass = 0; pass < 2u; pass++)
+        for (i = 0; i < ndl;) {
+            if ((int32_t)(dlq[i].due - now) <= 0 && dlq[i].off == (pass == 0u)) {
+                midi_send(dlq[i].pkt, dlq[i].ports);
+                dlq[i] = dlq[--ndl];
+            } else {
+                i++;
+            }
+        }
+}
+
+static void dl_flush_offs(void)
+{
+    uint32_t i;
+    for (i = 0; i < ndl; i++)
+        if (dlq[i].off)
+            midi_send(dlq[i].pkt, dlq[i].ports);
+    ndl = 0;
+}
+
+static void clock_out(uint32_t b)                       /* F8 to the ports that take the clock; FA FB FC to the ones
+                                                         * that take start and stop too */
+{
+    uint32_t p;
+    for (p = 0; p < NPT; p++)
+        if (port_clock[p] >= (b == 0xF8u ? PC_CLOCK : PC_TRANSPORT)) {
+            if (b == 0xFCu)
+                midi_send(PKT_RT(b), PT_PO[p]);         /* (a stop goes at once, as the note-offs do) */
+            else
+                out_at(PKT_RT(b), PT_PO[p], 1, 0);
+        }
+}
+
 static void ev_put(uint32_t due, uint32_t pkt, uint32_t ports, int off)
 {
     ev_t *e;
@@ -149,7 +244,7 @@ static void ev_run(uint32_t now)                        /* what is due: note-off
             if ((int32_t)(e->due - now) <= 0 && e->off == (pass == 0u)) {
                 uint32_t room = e->off ? 0u : plat_midi_out_room(ports_to(e->ports));
                 if (e->off || room == 0u || room >= 8u)  /* (0: nobody listens there; a few: keep them for note-offs) */
-                    midi_send(e->pkt, e->ports);
+                    out_at(e->pkt, e->ports, 0, e->off);
                 *e = evq[--nev];
             } else {
                 i++;
@@ -165,6 +260,7 @@ static void ev_flush_offs(void)                         /* a stop: every note-of
         if (evq[i].off)
             midi_send(evq[i].pkt, evq[i].ports);
     nev = 0;
+    dl_flush_offs();
 }
 
 /* ------------------------------------------------------------------- notes and keys --- */
@@ -336,7 +432,7 @@ static void scene_apply_track(uint32_t tr, uint32_t sc)
     P.pat[tr] = P.scene_pat[sc][tr] < NPAT ? P.scene_pat[sc][tr] : 0;
     t->muted = (uint8_t)(P.scene_mute[sc] >> tr & 1u);
     if (t->prog != PROG_NONE)
-        midi_send(pkt2(0xC0u | (t->chan & 15u), t->prog), t->ports);
+        out_at(pkt2(0xC0u | (t->chan & 15u), t->prog), t->ports, 0, 0);
 }
 
 /* the track's step at the line `line` (an engine tick) */
@@ -430,7 +526,7 @@ static void engine_tick(void)                           /* one engine tick */
 {
     uint32_t tr, now = E.tick;
     if (P.clock == CK_SEND && now % 4u == 0u)
-        midi_send(PKT_RT(0xF8), PO_ALL);
+        clock_out(0xF8);
     if ((now + 2u * TPQ) % (4u * TPQ) == 0u)
         song_bar();
     for (tr = 0; tr < NTRK; tr++) {
@@ -462,7 +558,7 @@ static void seq_start(int from_clock)
             E.t[tr].cue = 0xFFu;
         }
         if (P.trk[tr].prog != PROG_NONE)
-            midi_send(pkt2(0xC0u | (P.trk[tr].chan & 15u), P.trk[tr].prog), P.trk[tr].ports);
+            out_at(pkt2(0xC0u | (P.trk[tr].chan & 15u), P.trk[tr].prog), P.trk[tr].ports, 0, 0);
     }
     if (E.scene_cue != 0xFFu) {                         /* a scene cued while stopped starts now */
         for (tr = 0; tr < NTRK; tr++)
@@ -477,7 +573,7 @@ static void seq_start(int from_clock)
         P.scene = P.song_scene[E.slot] % NSCENE;
     }
     if (P.clock == CK_SEND && !from_clock)
-        midi_send(PKT_RT(0xFA), PO_ALL);
+        clock_out(0xFA);
     for (tr = 0; tr < NTRK; tr++)                       /* the steps on the first line, judged now */
         track_step(tr, 0);
     E.playing = 1;
@@ -488,7 +584,7 @@ static void seq_stop(void)
 {
     uint32_t f = plat_lock();
     if (E.playing && P.clock == CK_SEND)
-        midi_send(PKT_RT(0xFC), PO_ALL);
+        clock_out(0xFC);
     E.playing = 0;
     E.song_on = 0;
     ev_flush_offs();
@@ -635,6 +731,7 @@ void app_tick(void)
 {
     uint32_t t24 = now24(), per, n = 0;
     midi_read();
+    dl_run();
     if (E.follow && plat_ms() - E.clk_ms > 500u)        /* the clock stopped: our own tempo again */
         E.follow = 0;
     if (!E.playing) {
