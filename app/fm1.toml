@@ -1,6 +1,6 @@
 # RELAY-16's build settings (fm1-base's tools/build.py: ../build.sh builds every board)
-name = "relay16"               # the build's files: relay16.fwsc, relay16-smk37.fwsc ...
-id_prefix = "FM-1_73"          # package identity: dev FM-1_7300, releases FM-1_73XXYYZZ (SMK-37 Pro_73XXYYZZ)
+name = "RELAY-16"               # the name the site shows; the build's files: relay-16-X.Y.fwsc, relay-16-smk37-X.Y.fwsc ...
+id_prefix = "FM-1_7"           # package identity: dev FM-1_700, releases FM-1_7XXYYZZ (one digit: "SMK-37 Elite_" + 7 digits is the 20 an identity may have)
 usb_manufacturer = "RELAY-16"
 usb_product = "RELAY-16"
 words = "words.tsv"
@@ -12,6 +12,7 @@ usb_host = true                # the USB port as a MIDI host (GLOBAL > PORTS): a
 usb_audio_in = false           # no sound of its own: no USB audio interfaces
 usb_audio_out = false
 midi_stamp = false             # (the SMK-37 build has no TRS-in reader to stamp; app_tick reads MIDI in every ms)
+emu = ["midi"]                 # the browser emulator plays real synths: MIDI ports in its bar (Web MIDI)
 # the site and firmware.json (fm1-base docs/FIRMWARE-JSON.md)
 tagline = "a sequencer for other instruments"
 repo = "https://github.com/davidpryan/fm1-relay"
@@ -20,6 +21,6 @@ credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hü
 author = "David Ryan"
 description = "RELAY-16 is a sequencer with no sound of its own. Sixteen tracks play other instruments over USB, Bluetooth and (on the SMK-37) the TRS jack: another FM-1 running LOOM-8, a hardware synth, or a DAW. Steps hold chords, conditions, chance, ratchets, micro-timing and four CC locks; scenes, a song, mutes and fills run the performance."
 tags = ["sequencer", "midi"]
-install = "https://github.com/davidpryan/fm1-relay#install"
-site = "https://github.com/davidpryan/fm1-relay"
-screenshot = "docs/img/screen-steps.png"
+install = "https://davidpryan.github.io/fm1-relay/install/"
+site = "https://davidpryan.github.io/fm1-relay/"
+screenshot = "app/docs/img/screen-playing.png"

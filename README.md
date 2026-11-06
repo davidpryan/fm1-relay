@@ -4,7 +4,10 @@ A sequencer-first firmware for the M-VAVE FM-1 and the M-VAVE SMK-37. RELAY-16 m
 tracks play other instruments over USB, Bluetooth MIDI and, on the SMK-37, the TRS jack. Typical targets are another
 FM-1 running [LOOM-8](https://github.com/charlesvestal/fm1-loom), a hardware synth, or a DAW.
 
-**Status: 0.1, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
+**Site: <https://davidpryan.github.io/fm1-relay/>** has the web installer for each unit, the
+[manual](https://davidpryan.github.io/fm1-relay/manual/) and the firmware in the browser.
+
+**Status: 0.2, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
 been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGRADE at hand before installing.
 
 ## What it does
@@ -24,6 +27,7 @@ been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGR
 - Generators: Euclid (steps, pulses, rotate) and Random (density, range, seed), previewed, then printed into the
   pattern. Undo, copy, paste, double, shift.
 - Global key and scale: a track with IN KEY snaps its notes to it.
+- Four project slots (GLOBAL > PROJECTS: load, save here, clear). SAVE while playing saves at the stop.
 - Clock: internal, send (MIDI clock, start, stop on every port), or receive (follows a clock coming in).
 - MIDI in plays the selected track (thru), from USB, Bluetooth or the FM-1's TRS jack.
 - USB host (a synth or another FM-1 through a powered hub), Bluetooth MIDI both ways (a computer or phone connects to
@@ -80,7 +84,7 @@ Both boards use the FM-1's names in this list. On the SMK-37 the buttons are pri
 | HOME + PRESETS | The next scene |
 | PLAY | Start and stop. REC held + PLAY: play and record |
 | REC | Playing: recording on or off. Stopped: step record (OCT+ a rest, OCT- back; SMK: > and <) |
-| SAVE | Save the project |
+| SAVE | Save the project into its slot; while playing, at the stop |
 | ALGORITHM | The track |
 | PRESETS | The track's pattern, at the next bar (on a drum track's Steps page: its lane) |
 | SELECT | The page's sub-page; with a step held, its group |
@@ -99,32 +103,40 @@ wheels go to the selected track. The TRS jack is MIDI out: everything USB sends,
 
 ## Install
 
-The packages are built into `build/relay16/` and attached to the GitHub release:
+From Chrome or Edge on a computer, with the unit connected by USB:
+[FM-1](https://davidpryan.github.io/fm1-relay/install/),
+[SMK-37 Pro](https://davidpryan.github.io/fm1-relay/install-smk37/) (and the Starrykey 37 Play),
+[SMK-37 Elite](https://davidpryan.github.io/fm1-relay/install-smk37-elite/),
+[MKE-P37](https://davidpryan.github.io/fm1-relay/install-smk37-mke/).
+
+From the command line, with a package from the [releases](https://github.com/davidpryan/fm1-relay/releases):
 
 | File | For |
 | --- | --- |
-| `relay16-0.1.fwsc` | the FM-1 |
-| `relay16-smk37-0.1.fwsc` | the SMK-37 Pro (and the Starrykey 37 Play) |
-| `relay16-smk37-elite.fwsc` | the SMK-37 Elite (a development identity: a release name would be over 20 characters) |
-| `relay16-smk37-mke-0.1.fwsc` | the MKE-P37 |
+| `relay-16-X.Y.fwsc` | the FM-1 |
+| `relay-16-smk37-X.Y.fwsc` | the SMK-37 Pro (and the Starrykey 37 Play) |
+| `relay-16-smk37-elite-X.Y.fwsc` | the SMK-37 Elite |
+| `relay-16-smk37-mke-X.Y.fwsc` | the MKE-P37 |
 
-1. Install `python-rtmidi` once (`python3.11 -m pip install python-rtmidi`; this Mac already has it for Python 3.11)
+1. Install `python-rtmidi` once: `python3 -m pip install python-rtmidi`
 2. Connect the FM-1 or SMK-37 over USB, switched on, running any firmware.
-3. Run `python3.11 base/tools/fm1_install.py build/relay16/<file>.fwsc`
+3. Run `python3 base/tools/fm1_install.py relay-16-X.Y.fwsc` (from this repository)
 
-The installer checks that the package matches the unit: an SMK-37 package is refused on an FM-1, and an FM-1 package
-on an SMK-37. To go back, install M-VAVE's firmware with M-UPGRADE. If a unit doesn't start, its rescue mode takes an
-install too: hold OCT- (SMK-37: OCTAVE-) while switching on, then run the installer again.
+Both installers check that the package matches the unit: an SMK-37 package is refused on an FM-1, and an FM-1
+package on an SMK-37. To go back, install M-VAVE's firmware with M-UPGRADE. If a unit doesn't start, hold OCT- (SMK-37:
+OCTAVE-) while switching on for the update mode, then install again.
 
-RELAY-16 keeps its project in the FM-1's data area. On the SMK-37 it uses the stock firmware's USRFLASH window; going
-back to the stock firmware rebuilds the stock key mapping (fm1-base's SMK-37 layer never writes the calibration,
-Bluetooth pairing or key areas).
+RELAY-16 keeps four project slots in its own windows of the flash: about 90 KB each on the FM-1 and 56 KB on the
+SMK-37. On the SMK-37, fm1-base's board layer never writes the calibration, the Bluetooth pairing or the key areas,
+and going back to the stock firmware rebuilds the stock key mapping.
 
 ## Build
 
 ```sh
-./build.sh                  # the four packages into build/relay16/
+./build.sh                  # the four packages into build/relay-16/
+./build.sh --release 0.2    # release packages (their identities: FM-1_7000200, SMK-37 Pro_7000200 ...)
 ./build.sh --host           # the host simulators and the tests (app/tests/)
+python3 tools/make_pages.py 0.2 build/site   # the site, after a release build and base/tools/build.py app --web
 ```
 
 You need JieLi's toolchain (`~/.jieli/toolchain`), the AC79 SDK (`~/.jieli/ac79-sdk`), Docker on macOS, and Python 3

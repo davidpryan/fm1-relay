@@ -21,7 +21,8 @@ void app_init(void)
     seq_init();
     settings_load();
     project_new();
-    project_load();
+    project_load(set.slot);
+    ui.proj_sel = set.slot;
     ui.page = PG_STEPS;
     ui.eu_steps = 16;
     ui.eu_pulses = 5;
@@ -110,6 +111,10 @@ void app_frame(void)
         ui.redraw = 1;                           /* the playheads move: 25 frames a second */
     if (plat_midi_ago(PORT_USB, 1) < 200u || plat_midi_ago(PORT_BLE, 1) < 200u)
         last_msg = now;
+    if (ui.save_pending && !E.playing) {        /* stopped (here, or by a clock's stop): the save waiting */
+        project_save_say();
+        ui.redraw = 1;
+    }
     lights();
     if (ui.redraw) {
         ui.redraw = 0;
@@ -149,6 +154,12 @@ int app_expect(const char *what, int *got)
         *got = P.trk[sel_track].muted;
     else if (!strcmp(what, "group"))
         *got = ui.group;
+    else if (!strcmp(what, "slot"))
+        *got = set.slot;
+    else if (!strcmp(what, "save_pending"))
+        *got = ui.save_pending;
+    else if (!strncmp(what, "slotlen", 7))     /* slotlenN: the bytes slot N holds (0 empty) */
+        *got = (int)slot_info((uint32_t)atoi(what + 7) % NSLOTS, 0);
     else if (!strcmp(what, "song_n"))
         *got = P.song_n;
     else if (!strcmp(what, "tempo10"))

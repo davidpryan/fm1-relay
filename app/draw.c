@@ -113,7 +113,10 @@ static void draw_header(void)
         x -= 9;
         cv_rect(x, 8, 6, 6, K_REC);
     }
-    if (ui.dirty) {
+    if (ui.save_pending) {                       /* SAVE pressed while playing: it saves at the stop */
+        x -= text_w(&FONT_T, "SAVE AT STOP") + 6;
+        cv_text(x, 6, &FONT_T, "SAVE AT STOP", K_HI);
+    } else if (ui.dirty) {
         x -= 8;
         cv_text(x, 3, &FONT_B, "*", K_DIM);
     }
@@ -518,6 +521,34 @@ static void draw_global_page(void)
 #endif
         break;
     }
+    case GL_PROJECTS:
+        for (i = 0; i < NSLOTS; i++) {
+            uint32_t bpm = 0, len = slot_info(i, &bpm);
+            int32_t y = 2 + (int32_t)i * 26;
+            char n[16];
+            cv_rect(3, y, 234, 24, i == ui.proj_sel ? K_LINE : K_PANEL);
+            n[0] = (char)('1' + i);
+            n[1] = 0;
+            cv_text(9, y + 2, &FONT_B, n, i == set.slot ? tcol(sel_track) : K_DIM);
+            if (!len) {
+                cv_text(30, y + 4, &FONT_XS, "empty", K_DIM);
+            } else {
+                tempo_text(bpm, t);
+                s_cat(t, " BPM");
+                cv_text(30, y + 4, &FONT_XS, t, K_FG);
+                i_text((int32_t)((len + 1023u) / 1024u), n);
+                s_cat(n, " of ");
+                i_text((int32_t)(SLOT_BYTES / 1024u), n + text_len(n));
+                s_cat(n, " KB");
+                cv_text(110, y + 4, &FONT_XS, n, K_DIM);
+            }
+            if (i == set.slot)
+                cv_text(188, y + 4, &FONT_XS, ui.dirty ? "in use *" : "in use", K_HI);
+            if (i == ui.proj_sel)
+                outline(3, y, 234, 24, K_HI);
+        }
+        cv_text(5, 108, &FONT_XS, N_SEL ": load, save here, clear", K_DIM);
+        break;
     default: {
         static const char *const PN[NPORTS] = {"USB", "BLE", "TRS"};
         cv_text(5, 2, &FONT_M, APP_NAME, K_HI);
@@ -683,6 +714,8 @@ static void draw_bottom(void)
     i_text(P.pat[sel_track] + 1, t + text_len(t));
     s_cat(t, " > S");
     i_text(P.scene + 1, t + text_len(t));
+    s_cat(t, "   PROJECT ");
+    i_text(set.slot + 1, t + text_len(t));
     x = cv_text(6, 1, &FONT_T, t, K_FG);
     (void)x;
     for (i = 0; i < subs && subs > 1u; i++)

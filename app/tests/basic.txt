@@ -1,5 +1,5 @@
 # RELAY-16 on the FM-1 in the host simulator:
-#   base/tools/build.py app --host && app/build/host/relay16_host app/tests/basic.txt app/build/host
+#   base/tools/build.py app --host && app/build/host/relay-16_host app/tests/basic.txt app/build/host
 wait 600
 shot boot.png
 expect page 0
@@ -84,10 +84,12 @@ tap REC
 wait 30
 expect note0 62
 expect note1 64
-# pages
+wait 1500
+# pages (each shot after its message has gone)
 tap HOME
 wait 30
 expect page 7
+wait 1500
 shot arrange.png
 tap HOME
 wait 30
@@ -95,19 +97,25 @@ expect page 8
 tap LFO
 wait 30
 expect page 4
+wait 1500
 shot overview.png
 tap GLO
 wait 30
+wait 1500
 shot global.png
 tap EDIT
 wait 30
+wait 1500
 shot track.png
 tap ENV
 wait 30
+wait 1500
 shot lanes.png
 tap ARP
 wait 30
+wait 1500
 shot generate.png
 tap FX
 wait 30
+wait 1500
 shot perform.png

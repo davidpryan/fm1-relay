@@ -18,13 +18,10 @@
 #define APP_BLE_AT_BOOT (!relay_ble_off())
 int relay_ble_off(void);
 
-/* the store: the settings (the platform's Bluetooth record and the panel calibration among them). The project itself
- * is not a store object: it is written whole into the data area (store.c), below these */
+/* the store: the settings (the platform's Bluetooth record and the panel calibration among them). The projects are not
+ * store objects: four slots of whole sectors in the data windows (store.c), around these */
 enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
 #define APP_STORE_MAP {PLAT_GLOB, 0xDC000u, 0xDE000u}
-/* the project's flash: from the data area's start up to the store's first object at 0xDC000 */
-#define RELAY_PROJ_LO PLAT_DATA_LO
-#define RELAY_PROJ_HI 0xDC000u
 
 /* the contract: the platform calls these */
 void app_init(void);

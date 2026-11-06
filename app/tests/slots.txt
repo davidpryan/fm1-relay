@@ -1,0 +1,67 @@
+# RELAY-16's four project slots, and SAVE while playing (it waits for the stop), on the FM-1
+wait 600
+tapkey w0
+wait 30
+expect note0 54
+tap SAVE
+wait 300
+expect slot 0
+expect slotlen0 >0
+expect dirty 0
+# SAVE while playing: nothing is written until the stop
+tapkey w2
+wait 30
+tap PLAY
+wait 200
+tap SAVE
+wait 50
+expect save_pending 1
+expect dirty 1
+tap PLAY
+wait 400
+expect save_pending 0
+expect dirty 0
+# GLOBAL > PROJECTS: slot 2, SEL > SAVE HERE
+tap GLO
+wait 30
+turn SELECT 3
+wait 30
+turn K1 1
+wait 30
+tap SEL
+wait 30
+turn SELECT 1
+wait 30
+tap SEL
+wait 400
+expect slot 1
+expect slotlen1 >0
+wait 1500
+shot projects.png
+# a new project (asks first), then slot 1 back (asks first: the new one is not saved)
+tap SEL
+wait 30
+turn SELECT 4
+wait 30
+tap SEL
+wait 30
+tap SEL
+wait 100
+expect used 0
+turn K1 -1
+wait 30
+tap SEL
+wait 30
+tap SEL
+wait 30
+tap SEL
+wait 300
+expect slot 0
+expect note0 54
+expect note2 54
+# the slot in use comes back at power-on
+reboot
+wait 600
+expect slot 0
+expect note0 54
+expect slotlen1 >0

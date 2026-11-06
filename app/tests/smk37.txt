@@ -1,6 +1,6 @@
 # RELAY-16 on the SMK-37 in the host simulator:
 #   FM1B_BOARD=smk37 base/tools/build.py app --host
-#   app/build/host/relay16-smk37_host app/tests/smk37.txt app/build/host
+#   app/build/host/relay-16-smk37_host app/tests/smk37.txt app/build/host
 wait 600
 shot smk-boot.png
 # the pads are the steps: pad 0 (top left) is step 1

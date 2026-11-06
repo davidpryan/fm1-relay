@@ -9,7 +9,8 @@
  * The FM-1's names are used below (SEL, HOME ...); the screen shows the SMK-37's own on the SMK (draw.c). */
 
 enum { PG_STEPS, PG_TRACK, PG_LANES, PG_PERF, PG_OVER, PG_GEN, PG_GLOBAL, PG_ARR, PG_SONG, NPG };
-static const uint8_t PG_SUBS[NPG] = {1, 2, 2, 1, 1, 2, 4, 1, 1};
+static const uint8_t PG_SUBS[NPG] = {1, 2, 2, 1, 1, 2, 5, 1, 1};
+enum { GL_CLOCK, GL_KEY, GL_PORTS, GL_PROJECTS, GL_ABOUT };
 enum { GR_NOTE, GR_TIME, GR_LOGIC, GR_LOCK, NGR };
 
 typedef struct {
@@ -49,6 +50,8 @@ static struct {
     uint32_t rec_tick[128];
     int8_t last_fader[4];
     uint8_t home_used;                           /* HOME was a shift (or closed the menu) while down: no page change */
+    uint8_t proj_sel;                            /* GLOBAL > PROJECTS: the slot picked */
+    uint8_t save_pending;                        /* SAVE while playing: it saves at the stop */
 } ui;
 static step_t clip[NSTEP] PLAT_POOL, undo_buf[NSTEP] PLAT_POOL;
 static phead_t clip_ph, undo_ph;
@@ -565,12 +568,13 @@ static void lanes_clear(void)
 /* ------------------------------------------------------------------- the menu (SEL) --- */
 enum { MA_COPY, MA_PASTE, MA_CLEAR, MA_DOUBLE, MA_SHL, MA_SHR, MA_UNDO, MA_LOCKS_CLEAR, MA_PRINT, MA_SC_COPY,
        MA_SC_PASTE, MA_SC_CLEAR, MA_SONG_PLAY, MA_SONG_DEL, MA_SONG_CLEAR, MA_UNMUTE, MA_SAVE, MA_NEW, MA_PANIC,
-       MA_BT_CONNECT, MA_TRACK_RESET, NMA };
+       MA_BT_CONNECT, MA_TRACK_RESET, MA_LOAD, MA_SAVE_TO, MA_SLOT_CLEAR, NMA };
 static const char *const MA_NAME[NMA] = {"COPY PATTERN", "PASTE PATTERN", "CLEAR PATTERN", "DOUBLE PATTERN",
                                          "SHIFT LEFT", "SHIFT RIGHT", "UNDO", "CLEAR LOCKS", "PRINT", "COPY SCENE",
                                          "PASTE SCENE", "CLEAR SCENE", "PLAY SONG", "DELETE SLOT", "CLEAR SONG",
                                          "UNMUTE ALL", "SAVE PROJECT", "NEW PROJECT", "ALL NOTES OFF",
-                                         "BT CONNECT / LET GO", "RESET TRACK"};
+                                         "BT CONNECT / LET GO", "RESET TRACK", "LOAD PROJECT", "SAVE HERE",
+                                         "CLEAR SLOT"};
 static uint8_t menu_items[12];
 
 static uint32_t menu_build(void)
@@ -588,8 +592,13 @@ static uint32_t menu_build(void)
     case PG_TRACK: ADD(MA_TRACK_RESET); ADD(MA_COPY); ADD(MA_PASTE); break;
     default: break;
     }
-    if (ui.page == PG_GLOBAL && ui.sub[PG_GLOBAL] == 2u && FM1B_BLE_CENTRAL)
+    if (ui.page == PG_GLOBAL && ui.sub[PG_GLOBAL] == GL_PORTS && FM1B_BLE_CENTRAL)
         ADD(MA_BT_CONNECT);
+    if (ui.page == PG_GLOBAL && ui.sub[PG_GLOBAL] == GL_PROJECTS) {
+        ADD(MA_LOAD);
+        ADD(MA_SAVE_TO);
+        ADD(MA_SLOT_CLEAR);
+    }
     ADD(MA_SAVE);
     ADD(MA_NEW);
     ADD(MA_PANIC);
@@ -598,6 +607,7 @@ static uint32_t menu_build(void)
 }
 
 static int project_save_say(void);
+static void slot_load_now(uint32_t slot);
 
 static void menu_do(uint32_t a)
 {
@@ -698,6 +708,35 @@ static void menu_do(uint32_t a)
         app_say(btdev_word(ev), btdev_name());
         break;
     }
+    case MA_LOAD:
+        if (ui.dirty && !ui.menu_confirm) {
+            ui.menu_confirm = 1;
+            app_say("NOT SAVED: LOSE IT?", "SEL YES");
+            return;
+        }
+        slot_load_now(ui.proj_sel);
+        break;
+    case MA_SAVE_TO:
+        if (slot_info(ui.proj_sel, 0) && ui.proj_sel != set.slot && !ui.menu_confirm) {
+            ui.menu_confirm = 1;
+            app_say("REPLACE PROJECT?", "SEL YES");
+            return;
+        }
+        set.slot = ui.proj_sel;
+        settings_save();
+        project_save_say();
+        break;
+    case MA_SLOT_CLEAR:
+        if (!ui.menu_confirm) {
+            ui.menu_confirm = 1;
+            app_say("CLEAR THE SLOT?", "SEL YES");
+            return;
+        }
+        slot_clear(ui.proj_sel);
+        if (ui.proj_sel == set.slot)
+            ui.dirty = 1;                        /* what is in RAM is no longer saved anywhere */
+        app_say("SLOT", "CLEARED");
+        break;
     case MA_TRACK_RESET: {
         uint32_t ch = trk()->chan, po = trk()->ports;
         track_defaults(sel_track);
@@ -714,14 +753,48 @@ static void menu_do(uint32_t a)
     ui.redraw = 1;
 }
 
+static void slot_load_now(uint32_t slot)
+{
+    char t[4] = {(char)('1' + slot), 0, 0, 0};
+    if (E.playing)
+        seq_stop();
+    ui.save_pending = 0;
+    if (!slot_info(slot, 0)) {
+        app_say("SLOT EMPTY", t);
+        return;
+    }
+    if (!project_load(slot)) {
+        app_say("SLOT DAMAGED", t);
+        return;
+    }
+    set.slot = (uint8_t)slot;
+    settings_save();
+    sel_track = 0;
+    ui.bar = 0;
+    ui.dirty = 0;
+    ui.undo_ok = 0;
+    app_say("LOADED PROJECT", t);
+}
+
 static int project_save_say(void)
 {
-    int rc = project_save();
+    char t[16];
+    int rc;
+    if (E.playing) {                             /* erasing the flash stops everything for a moment: at the stop */
+        ui.save_pending = 1;
+        app_say("SAVES AT", "THE STOP");
+        return 0;
+    }
+    ui.save_pending = 0;
+    rc = project_save(set.slot);
     if (!rc) {
         ui.dirty = 0;
-        app_say("SAVED", "");
+        s_cpy(t, "PROJECT ");
+        t[8] = (char)('1' + set.slot);
+        t[9] = 0;
+        app_say("SAVED", t);
     } else {
-        app_say("NOT SAVED", rc == -1 ? "PROJECT TOO BIG" : "FLASH ERROR");
+        app_say("NOT SAVED", rc == -1 ? "TOO BIG FOR A SLOT" : "FLASH ERROR");
     }
     ui.redraw = 1;
     return rc;
@@ -952,6 +1025,10 @@ static void knobs_get(knob_t k[4])
             knob_set(&k[3], "TRS OUT", set.trs_off ? "OFF" : "ON", -1);
 #endif
             break;
+        case GL_PROJECTS:
+            i_text(ui.proj_sel + 1, t);
+            knob_set(&k[0], "SLOT", t, ui.proj_sel * 100 / (NSLOTS - 1));
+            break;
         default:
             break;
         }
@@ -1140,7 +1217,7 @@ static void knob_turn(uint32_t k, int32_t d)
         return;                                  /* (the generator's settings are not the project's) */
     case PG_GLOBAL:
         switch (ui.sub[PG_GLOBAL]) {
-        case 0:
+        case GL_CLOCK:
             if (k == 0)
                 P.bpm10 = (uint16_t)step_clamp(P.bpm10, d * ((ui.btn >> B_HOME & 1u) ? 1 : 10), 300, 3000);
             else if (k == 1)
@@ -1178,6 +1255,11 @@ static void knob_turn(uint32_t k, int32_t d)
                 settings_save();
             }
 #endif
+            ui.redraw = 1;
+            return;
+        case GL_PROJECTS:
+            if (k == 0)
+                ui.proj_sel = (uint8_t)step_clamp(ui.proj_sel, d, 0, NSLOTS - 1);
             ui.redraw = 1;
             return;
         default:
