@@ -4,7 +4,7 @@ RELAY-16 turns the M-VAVE FM-1 or SMK-37 into a sequencer for other instruments.
 sixteen tracks play other gear over MIDI. This manual covers both units. Where the SMK-37 differs, its controls are in
 brackets.
 
-**Status:** version 0.2 has not been tried on a unit yet. It builds for both boards and passes its tests in
+**Status:** version 0.3 has not been tried on a unit yet. It builds for both boards and passes its tests in
 fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, at hand.
 
 - [Quick start: a beat on a LOOM-8 FM-1](#quick-start-a-beat-on-a-loom-8-fm-1)
@@ -40,6 +40,8 @@ fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, a
    fader 1].
 7. **Save.** Press SAVE [BT].
 
+Not sure what a button does? Hold it for a second: a card explains it.
+
 ## The words
 
 - **Track** (T1 to T16): one part. A track sends on one MIDI channel to the ports you pick, and has 8 patterns.
@@ -73,6 +75,12 @@ On the SMK-37 the buttons carry their own names:
 | KNOB 1-4 | K1-K4 |
 
 The screen always uses the names printed on your unit.
+
+**Help cards.** Hold any button on its own for a second and a card explains it, in your unit's names. Let go and the
+card goes, and nothing else happens. A button that acts when pressed (PLAY, REC, SAVE, a page) has still done so. A
+button held while you use another control is a shift, and shows no card. FADER BANK shows none: it is held for fills.
+
+![SEQ held for a second: its help card over the page](img/screen-card.png "A help card")
 
 | Control | What it does |
 | --- | --- |

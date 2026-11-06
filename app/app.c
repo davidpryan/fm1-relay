@@ -24,6 +24,7 @@ void app_init(void)
     project_load(set.slot);
     ui.proj_sel = set.slot;
     ui.page = PG_STEPS;
+    ui.card = ui.hold_b = NB;
     ui.eu_steps = 16;
     ui.eu_pulses = 5;
     ui.eu_rot = 0;
@@ -111,6 +112,13 @@ void app_frame(void)
         ui.redraw = 1;                           /* the playheads move: 25 frames a second */
     if (plat_midi_ago(PORT_USB, 1) < 200u || plat_midi_ago(PORT_BLE, 1) < 200u)
         last_msg = now;
+    if (ui.hold_b < NB && ui.hold_clean && ui.card == NB && now - ui.hold_t >= CARD_MS &&
+        (ui.btn >> ui.hold_b & 1u) && ui.hold_b != (PLAT_SMK37 ? NB - 3u : NB)) {   /* (not FADER BANK: fill) */
+        ui.card = ui.hold_b;                     /* a button held alone a second: its card */
+        ui.redraw = 1;
+        if (ann_on())
+            ann_say(CARDS[ui.card].text, 0, ANN_NOW);
+    }
     if (ui.save_pending && !E.playing) {        /* stopped (here, or by a clock's stop): the save waiting */
         project_save_say();
         ui.redraw = 1;
@@ -154,6 +162,8 @@ int app_expect(const char *what, int *got)
         *got = P.trk[sel_track].muted;
     else if (!strcmp(what, "group"))
         *got = ui.group;
+    else if (!strcmp(what, "card"))           /* the button whose help card shows, -1 none */
+        *got = ui.card == NB ? -1 : ui.card;
     else if (!strcmp(what, "slot"))
         *got = set.slot;
     else if (!strcmp(what, "save_pending"))

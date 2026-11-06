@@ -7,7 +7,7 @@ FM-1 running [LOOM-8](https://github.com/charlesvestal/fm1-loom), a hardware syn
 **Site: <https://davidpryan.github.io/fm1-relay/>** has the web installer for each unit, the
 [manual](https://davidpryan.github.io/fm1-relay/manual/) and the firmware in the browser.
 
-**Status: 0.2, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
+**Status: 0.3, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
 been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGRADE at hand before installing.
 
 ## What it does
@@ -28,6 +28,7 @@ been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGR
   pattern. Undo, copy, paste, double, shift.
 - Global key and scale: a track with IN KEY snaps its notes to it.
 - Four project slots (GLOBAL > PROJECTS: load, save here, clear). SAVE while playing saves at the stop.
+- Help cards: hold any button alone for a second and a card explains it, in the unit's own names.
 - Clock: internal, send (MIDI clock, start, stop on every port), or receive (follows a clock coming in).
 - MIDI in plays the selected track (thru), from USB, Bluetooth or the FM-1's TRS jack.
 - USB host (a synth or another FM-1 through a powered hub), Bluetooth MIDI both ways (a computer or phone connects to

@@ -49,3 +49,11 @@ tap PLAY
 wait 30
 expect playing 0
 leds
+# a help card, in the SMK-37's words
+press ENV
+wait 1200
+expect card 2
+shot smk-card.png
+release ENV
+wait 30
+expect card -1

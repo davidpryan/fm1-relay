@@ -119,3 +119,23 @@ tap FX
 wait 30
 wait 1500
 shot perform.png
+# help cards: a button held alone a second shows its card; let go and it goes
+tap SEQ
+wait 1500
+press SEQ
+wait 1200
+expect card 9
+shot card.png
+release SEQ
+wait 30
+expect card -1
+expect page 0
+# HOME held as a shift (a knob turned) shows no card and changes no page
+press HOME
+wait 200
+turn K1 1
+wait 1200
+expect card -1
+release HOME
+wait 30
+expect page 0

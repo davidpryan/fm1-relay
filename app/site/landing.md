@@ -39,6 +39,6 @@ simulator. Installing is at your own risk; M-VAVE's updater puts the stock firmw
 - MIDI clock out or in. USB host for a synth or another FM-1 through a powered hub. Bluetooth MIDI both ways.
 - On the SMK-37: the pads are the steps, the keybed plays with velocity, the faders play CC lanes, and the TRS jack
   is MIDI out.
-- Four project slots.
+- Four project slots, and a help card for every button: hold it for a second.
 
 M-VAVE, FM-1 and SMK-37 are trademarks of their owners. RELAY-16 is not affiliated with M-VAVE.

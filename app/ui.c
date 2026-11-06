@@ -52,7 +52,13 @@ static struct {
     uint8_t home_used;                           /* HOME was a shift (or closed the menu) while down: no page change */
     uint8_t proj_sel;                            /* GLOBAL > PROJECTS: the slot picked */
     uint8_t save_pending;                        /* SAVE while playing: it saves at the stop */
+    uint8_t card;                                /* a button's help card on the screen (B_*), NB none */
+    uint8_t hold_b, hold_clean;                  /* the button held alone (NB none), nothing else touched since */
+    uint32_t hold_t;
 } ui;
+#define CARD_MS 1000u                            /* a button held alone this long shows its card */
+
+static void input_seen(void) { ui.hold_clean = 0; }   /* another control used: the held button is a shift, no card */
 static step_t clip[NSTEP] PLAT_POOL, undo_buf[NSTEP] PLAT_POOL;
 static phead_t clip_ph, undo_ph;
 
@@ -356,6 +362,7 @@ static void note_event(uint32_t note, uint32_t vel, int on, int play)
     if (note > 127u)
         return;
     if (on) {
+        input_seen();
         if (play)
             live_on(sel_track, note, vel);
         if (!ui.ndown) {                         /* the first of a chord: the remembered notes start again */
@@ -1301,6 +1308,7 @@ static void knob_turn(uint32_t k, int32_t d)
 /* ------------------------------------------------------------------- the grid and the side --- */
 static void grid_press(uint32_t i)
 {
+    input_seen();
     uint32_t now = plat_ms();
     switch (ui.page) {
     case PG_STEPS:
@@ -1379,6 +1387,7 @@ static void grid_release(uint32_t i)
 
 static void side_press(uint32_t i)               /* the FM-1's black keys */
 {
+    input_seen();
     track_t *t = trk();
     if (ui.page == PG_STEPS && ui.grid_held) {
         if (i < NGR) {
@@ -1439,6 +1448,9 @@ static void transport_play(void)
 static void button_press(uint32_t b)
 {
     int home = (int)(ui.btn >> B_HOME & 1u) && b != B_HOME;
+    ui.hold_b = (uint8_t)b;                      /* a card if it stays held alone (app_frame) */
+    ui.hold_t = plat_ms();
+    ui.hold_clean = ui.btn == 1u << b;
     if (home)
         ui.home_used = 1;
     if (b == B_HOME) {
@@ -1547,6 +1559,16 @@ static void button_press(uint32_t b)
 
 static void button_release(uint32_t b)
 {
+    if (b == ui.hold_b) {
+        ui.hold_b = NB;
+        if (ui.card != NB) {                     /* the card goes; the button does nothing more */
+            ui.card = NB;
+            ui.redraw = 1;
+            if (b == B_HOME)
+                ui.home_used = 1;
+            return;
+        }
+    }
     if (b == B_HOME && plat_ms() - ui.btn_t[B_HOME] < 400u && !ui.home_used && !ui.menu) {
         page_go(ui.page == PG_ARR ? PG_SONG : PG_ARR);   /* a tap: Arrange, again: Song */
         ui.sub[PG_ARR] = ui.sub[PG_SONG] = 0;
@@ -1564,6 +1586,7 @@ static void encoders(void)
     int32_t d;
     uint32_t k;
     if ((d = plat_enc(EN_SELECT)) != 0) {
+        input_seen();
         if (ui.menu) {
             ui.menu_i = (int8_t)clamp(ui.menu_i + d, 0, ui.menu_n - 1);
             ui.menu_confirm = 0;
@@ -1576,6 +1599,7 @@ static void encoders(void)
         ui.redraw = 1;
     }
     if ((d = plat_enc(EN_ALGO)) != 0) {
+        input_seen();
         sel_track = (uint8_t)clamp((int32_t)sel_track + d, 0, NTRK - 1);
         ui.grid_held = 0;
         if (ui.bar * 16u >= cur_ph()->len)
@@ -1583,6 +1607,7 @@ static void encoders(void)
         ui.redraw = 1;
     }
     if ((d = plat_enc(EN_PRESET)) != 0) {
+        input_seen();
         if (ui.btn >> B_HOME & 1u) {             /* HOME + PRESETS: the next scene */
             int32_t sc;
             ui.home_used = 1;
@@ -1600,6 +1625,7 @@ static void encoders(void)
     }
     for (k = 0; k < 4u; k++)
         if ((d = plat_enc(EN_K1 + (int)k)) != 0) {
+            input_seen();
             if (ui.btn >> B_HOME & 1u)
                 ui.home_used = 1;
             knob_turn(k, d);

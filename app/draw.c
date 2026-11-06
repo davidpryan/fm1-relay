@@ -645,6 +645,90 @@ static void draw_menu(void)
     }
 }
 
+/* ------------------------------------------------------------------- help cards --- */
+/* a button held alone for a second: what it does, on the page band, until it is let go */
+#if PLAT_SMK37
+#define N_NAMEOF(fm1, smk) smk
+#else
+#define N_NAMEOF(fm1, smk) fm1
+#endif
+typedef struct {
+    const char *name, *text;
+} card_t;
+static const card_t CARDS[NB] = {
+    [B_FX] = {N_NAMEOF("FX", "FX"), "Perform: the " N_GRID " keys mute the 16 tracks. Hold " N_HOME " and press one to solo it. "
+              N_NAMEOF("Black key 1 held: fill.", "FADER BANK held: fill, on any page.")},
+    [B_SEL] = {N_SEL, "The page's menu: copy, paste, clear, double, shift, undo; scenes; the song; save, new project, "
+               "all notes off. " N_SELECT " picks, " N_SEL " does it, " N_HOME " closes. " N_HOME " + " N_SEL ": undo."},
+    [B_ENV] = {N_NAMEOF("ENV", "CHORD"), "Lanes: the track's four CCs. Page 1 picks each lane's CC; page 2 plays "
+               "them live, and records them while recording. A step locks them (hold it, LOCKS)."},
+    [B_LFO] = {N_NAMEOF("LFO", "NOTE REPEAT"), "Overview: eight tracks, their pattern lengths and playheads. The "
+               N_GRID " keys pick a track. The knobs edit its pattern."},
+    [B_EDIT] = {N_NAMEOF("EDIT", "PARA"), "Track: the device it plays, its MIDI channel, ports and transpose. Page 2: "
+                "notes or drums, program change, in key (a drum lane's note), velocity. " N_HOME " + "
+                N_NAMEOF("EDIT", "PARA") ": paste the pattern."},
+    [B_GLO] = {N_NAMEOF("GLO", "GLOBE"), "Global: clock and tempo, key and scale, ports (USB host, Bluetooth"
+               N_NAMEOF("", ", TRS out") "), the four projects, about. " N_HOME " + " N_NAMEOF("GLO", "GLOBE")
+               ": all notes off."},
+    [B_HOME] = {N_HOME, "Arrange: the " N_GRID " keys are scenes, at the bar (again: now). Tap " N_HOME
+                " again: the song. Held, " N_HOME " is a shift: undo, copy, paste, solo, the next scene, fine tempo."},
+    [B_SAVE] = {N_SAVE, "Saves the project into its slot (GLOBAL page 4 has all four). While playing, it saves "
+                "when you stop: the flash would stall the sequencer."},
+    [B_ARP] = {"ARP", "Generate: Euclid (steps, pulses, rotate) and Random (density, range, seed), previewed. ARP "
+               "again prints it into the pattern; " N_HOME " + " N_SEL " undoes it."},
+    [B_SEQ] = {"SEQ", "Steps: a bar of the pattern on the " N_GRID " keys. Tap a step: on or off. Hold a step: all of "
+               "it on the knobs. " N_NAMEOF("Hold SEQ: the keys play the track and set the notes a tap writes.",
+               "The keybed plays the track and sets the notes a tap writes.")},
+    [B_PLAY] = {N_NAMEOF("PLAY", "SEQ PLAY"), "Starts and stops. With the clock on SEND, the other instruments start "
+                "and stop too. REC held + PLAY: play and record. On the Song page: the song."},
+    [B_REC] = {N_NAMEOF("REC", "SEQ REC"), "Playing: recording on or off; notes and lane moves go onto the steps. "
+               "Stopped: step record, a note or chord a step; " N_NAMEOF("OCT+ a rest, OCT- back.",
+               "> a rest, < back.")},
+    [B_OCTDN] = {N_NAMEOF("OCT-", "OCTAVE-"), N_NAMEOF("The bar before on Steps; the keys' octave while they play "
+                 "notes. Step record: back a step.", "The keybed's octave down.")},
+    [B_OCTUP] = {N_NAMEOF("OCT+", "OCTAVE+"), N_NAMEOF("The next bar on Steps; the keys' octave while they play "
+                 "notes. Step record: a rest.", "The keybed's octave up.")},
+#if PLAT_SMK37
+    [B_KBANK] = {"KNOB BANK", "Perform: the pads mute the 16 tracks. Hold PATCH and press one to solo it."},
+    [B_FBANK] = {"FADER BANK", "Held: fill, on any page (steps with FILL play, !FILL rest)."},
+    [B_LEFT] = {"<", "The bar before on Steps; with a step held, its group; step record: back a step."},
+    [B_RIGHT] = {">", "The next bar on Steps; with a step held, its group; step record: a rest."},
+#endif
+};
+
+static void draw_card(uint32_t b)                /* the card over the page band, the words wrapped to it */
+{
+    const card_t *c = &CARDS[b % NB];
+    const char *p = c->text;
+    char line[64];
+    int32_t y = 30;
+    cv_rect(6, 2, 228, 126, K_PANEL);
+    outline(6, 2, 228, 126, K_HI);
+    boxed(14, 10, c->name ? c->name : "", K_HI);
+    while (*p && y < 118) {                      /* as many words as fit 212 pixels, a line at a time */
+        uint32_t n = 0, fit = 0;
+        while (p[n] && n < sizeof line - 1u) {
+            line[n] = p[n];
+            line[n + 1u] = 0;
+            if (text_w(&FONT_XS, line) > 212)
+                break;
+            n++;
+            if (!p[n] || p[n] == ' ')
+                fit = n;
+        }
+        if (!p[n])
+            fit = n;
+        if (!fit)
+            fit = n ? n : 1u;
+        line[fit] = 0;
+        cv_text(14, y, &FONT_XS, line, K_FG);
+        p += fit;
+        while (*p == ' ')
+            p++;
+        y += 15;
+    }
+}
+
 /* ------------------------------------------------------------------- the bottom: tag, knobs, hints --- */
 static void hint(int32_t x, int32_t y, const char *key, const char *what)
 {
@@ -744,7 +828,9 @@ static void draw(void)
 {
     draw_header();
     cv_begin(240, 130, K_BG);
-    if (ui.menu)
+    if (ui.card != NB)
+        draw_card(ui.card);
+    else if (ui.menu)
         draw_menu();
     else if (step_edit_mode())
         draw_inspector();
