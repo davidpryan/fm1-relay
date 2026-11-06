@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RELAY-16: RELAY-16 manual</title>
+<meta name="description" content="RELAY-16 manual for RELAY-16, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<main id="content" tabindex="-1">
+<a class="home" href="../">RELAY-16</a>
+<h1>RELAY-16 manual</h1>
+<p>RELAY-16 turns the M-VAVE FM-1 or SMK-37 into a sequencer for other instruments. It makes no sound of its own: its sixteen tracks play other gear over MIDI. This manual covers both units. Where the SMK-37 differs, its controls are in brackets.</p>
+<p><strong>Status:</strong> version 0.5 has not been tried on a unit yet. It builds for both boards and passes its tests in fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, at hand.</p>
+<ul><li><a href="#quick-start-a-beat-on-a-loom-8-fm-1">Quick start: a beat on a LOOM-8 FM-1</a></li><li><a href="#the-words">The words</a></li><li><a href="#the-controls">The controls</a></li><li><a href="#the-screen">The screen</a></li><li><a href="#steps">Steps</a></li><li><a href="#recording">Recording</a></li><li><a href="#track">Track</a></li><li><a href="#lanes">Lanes</a></li><li><a href="#perform">Perform</a></li><li><a href="#overview">Overview</a></li><li><a href="#generate">Generate</a></li><li><a href="#arrange-and-the-song">Arrange and the song</a></li><li><a href="#global">Global</a></li><li><a href="#saving-and-the-four-projects">Saving and the four projects</a></li><li><a href="#playing-a-loom-8-fm-1">Playing a LOOM-8 FM-1</a></li><li><a href="#two-loom-8s-and-other-firmwares-over-bluetooth">Two LOOM-8s, and other firmwares over Bluetooth</a></li><li><a href="#jiant-fm-and-clipper">JIANT FM and Clipper</a></li><li><a href="#midi">MIDI</a></li><li><a href="#installing-and-going-back">Installing and going back</a></li></ul>
+<h2 id="quick-start-a-beat-on-a-loom-8-fm-1">Quick start: a beat on a LOOM-8 FM-1</h2>
+<ol><li><strong>Set up the LOOM-8 FM-1.</strong> Start a new project and leave CLOCK on <em>receive</em>.</li><li><strong>Connect.</strong> From an SMK-37: a 3.5 mm TRS cable from its jack into the FM-1's MIDI IN. From an FM-1: press GLO, turn SELECT to page 3, turn KNOB 1 to HOST, and join the two FM-1s through a powered USB hub.</li><li><strong>A beat.</strong> Press SEQ. Track 1 drives LOOM-8's kit. Press a black key to pick a drum [turn K8, or play the drum's key on the keybed]. Then press white keys [pads] to place hits. Press PLAY: the LOOM-8 plays it.</li><li><strong>A bass line.</strong> Turn ALGORITHM [K7] to T2. Hold SEQ and play a note on the keys [play the keybed]. Let go and tap steps: each one gets that note.</li><li><strong>Shape a step.</strong> Hold a step. Press black key 3 [SELECT, or &lt; &gt;] for LOGIC, then turn KNOB 1 to 1:2: the step plays every other pass.</li><li><strong>Move the sound.</strong> Press ENV [CHORD] and turn SELECT to page 2. KNOB 1 now moves LOOM-8's cutoff on T2 [so does fader 1].</li><li><strong>Save.</strong> Press SAVE [BT].</li></ol>
+<p>Not sure what a button does? Hold it for a second: a card explains it.</p>
+<h2 id="the-words">The words</h2>
+<ul><li><strong>Track</strong> (T1 to T16): one part. A track sends on one MIDI channel to the ports you pick, and has 8 patterns.</li><li><strong>Pattern</strong> (P1 to P8): a track's steps, up to 64, with its own length, note value, direction and swing.</li><li><strong>Step</strong>: up to 4 notes and everything about how they play.</li><li><strong>Lane</strong>: one of a track's four CCs (or pitch bend, or pressure). A step can <strong>lock</strong> a lane to a value.</li><li><strong>Device profile</strong>: what a track drives (LOOM-8 synth, LOOM-8 kit, JIANT synth, JIANT DRUM-X, Clipper, GM drums, a drum machine, the stock FM-1, a generic synth). It names the lanes and the drum notes.</li><li><strong>Scene</strong> (S1 to S16): a pattern and a mute for every track.</li><li><strong>Song</strong>: scenes in order, each for a number of bars.</li><li><strong>Project</strong>: all of it. There are four slots.</li></ul>
+<h2 id="the-controls">The controls</h2>
+<p>On the SMK-37 the buttons carry their own names:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The controls (FM-1, SMK-37)"><table><thead><tr><th>FM-1</th><th>SMK-37</th></tr></thead><tbody><tr><td>SEL</td><td>SCALE</td></tr><tr><td>ENV</td><td>CHORD</td></tr><tr><td>LFO</td><td>NOTE REPEAT</td></tr><tr><td>EDIT</td><td>PARA</td></tr><tr><td>GLO</td><td>GLOBE</td></tr><tr><td>HOME</td><td>PATCH</td></tr><tr><td>SAVE</td><td>BT</td></tr><tr><td>PLAY</td><td>SEQ PLAY</td></tr><tr><td>REC</td><td>SEQ REC</td></tr><tr><td>SELECT</td><td>K6</td></tr><tr><td>ALGORITHM</td><td>K7</td></tr><tr><td>PRESETS</td><td>K8</td></tr><tr><td>KNOB 1-4</td><td>K1-K4</td></tr></tbody></table></div>
+<p>The screen always uses the names printed on your unit.</p>
+<p><strong>Help cards.</strong> Hold any button on its own for a second and a card explains it, in your unit's names. Let go and the card goes, and nothing else happens. A button that acts when pressed (PLAY, REC, SAVE, a page) has still done so. A button held while you use another control is a shift, and shows no card. FADER BANK shows none: it is held for fills.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-card.png" alt="SEQ held for a second: its help card over the page" loading="lazy"><figcaption>A help card</figcaption></figure></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: The controls (Control, What it does)"><table><thead><tr><th>Control</th><th>What it does</th></tr></thead><tbody><tr><td><strong>SEQ</strong></td><td>Steps. On the FM-1, hold it and the keys play the track and set the notes a step press writes.</td></tr><tr><td><strong>EDIT</strong></td><td>Track: the device, channel, ports and transpose; page 2: type, program, in key or lane note, velocity.</td></tr><tr><td><strong>ENV</strong></td><td>Lanes: page 1 picks each lane's CC, page 2 plays them live.</td></tr><tr><td><strong>FX</strong> [KNOB BANK]</td><td>Perform: mutes, solo, fill.</td></tr><tr><td><strong>LFO</strong></td><td>Overview: every track's length and playhead.</td></tr><tr><td><strong>ARP</strong></td><td>Generate: Euclid and random patterns. ARP again prints the one shown into the pattern.</td></tr><tr><td><strong>GLO</strong></td><td>Global: clock and tempo, key and scale, ports, projects, about.</td></tr><tr><td><strong>HOME</strong></td><td>Arrange; press it again for the Song. Held, it is a shift.</td></tr><tr><td><strong>SEL</strong></td><td>The page's menu. In a menu, SEL does the item and HOME closes it.</td></tr><tr><td><strong>SAVE</strong></td><td>Saves the project into its slot. While playing, it saves when you stop.</td></tr><tr><td><strong>PLAY</strong></td><td>Starts and stops. REC held + PLAY: play and record. On the Song page: the song from the slot picked.</td></tr><tr><td><strong>REC</strong></td><td>Playing: recording on or off. Stopped: step record.</td></tr><tr><td><strong>ALGORITHM</strong></td><td>The track.</td></tr><tr><td><strong>PRESETS</strong></td><td>The track's pattern, at the next bar. On a drum track's Steps page: the drum lane.</td></tr><tr><td><strong>SELECT</strong></td><td>The page's next page (the dots at the right of the tag line). With a step held: its group. In a menu: the item.</td></tr><tr><td><strong>KNOB 1-4</strong></td><td>The four values at the bottom of the screen.</td></tr><tr><td><strong>OCT- / OCT+</strong></td><td>FM-1: the bar shown on Steps; with SEQ held or on pages without steps, the keys' octave. SMK-37: the keybed's octave.</td></tr><tr><td><strong>&lt; / &gt;</strong> (SMK-37)</td><td>The bar shown on Steps; with a step held, its group; in step record, back and a rest.</td></tr><tr><td><strong>FADER BANK</strong> (SMK-37)</td><td>Held: fill, on any page.</td></tr><tr><td><strong>HOME + SEL</strong></td><td>Undo the last pattern change (again: redo).</td></tr><tr><td><strong>HOME + GLO</strong></td><td>All notes off, on every channel and port.</td></tr><tr><td><strong>HOME + PRESETS</strong></td><td>The next scene.</td></tr><tr><td><strong>HOME + SEQ / EDIT</strong></td><td>Copy / paste the pattern.</td></tr><tr><td><strong>HOME + ARP</strong></td><td>Print the generator, from any page.</td></tr></tbody></table></div>
+<p><strong>The SMK-37's own controls.</strong></p>
+<ul><li>The 37-key keybed always plays the selected track, with velocity.</li><li>The 16 pads are the page's 16 keys: steps, scenes, mutes or tracks. Steps 1-8 are the top row.</li><li>The four faders play lanes 1-4 live.</li><li>The pitch and mod wheels go to the selected track.</li><li>The TRS jack is MIDI out.</li></ul>
+<h2 id="the-screen">The screen</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-playing.png" alt="The Steps page while it plays: T2&#x27;s notes, step 1 with C4, the bar tabs at the right" loading="lazy"><figcaption>Steps</figcaption></figure></div>
+<p>From top to bottom:</p>
+<ul><li><strong>The header:</strong> the track's colour and number, the page, then MIDI activity, a red dot while recording, the play triangle, the scene and the tempo. The tempo is green while it follows a clock coming in. <code>*</code> means unsaved changes; SAVE AT STOP means a save is waiting.</li><li><strong>The page.</strong></li><li><strong>The tag line:</strong> where you are (track, device, pattern, scene, project), with the page's dots on the right.</li><li><strong>The four knobs.</strong></li><li><strong>Two lines of hints:</strong> what the keys and buttons do here.</li></ul>
+<p>Messages cover the header for a moment.</p>
+<p>Every track keeps its colour. Cream outlines show what you are holding, and red is used only for recording and locks.</p>
+<h2 id="steps">Steps</h2>
+<p>Press <strong>SEQ</strong>. The 16 white keys [pads] are one bar of the selected track's pattern. The squares at the top right are the pattern's bars: OCT- / OCT+ [&lt; &gt;] show the others, and a line under one marks the bar playing.</p>
+<ul><li><strong>Tap a step</strong> to put the remembered notes on it, or to clear it. The remembered notes are the last keys you played together on this track.</li><li><strong>Hold a step</strong> to see everything about it (below).</li><li><strong>Hold several steps</strong> and turn a knob: they all change.</li><li><strong>Hold a step and play keys</strong> (FM-1: with SEQ held) [the keybed] to give it those notes. Play a chord to give it a chord.</li></ul>
+<p>A cell shows its notes: the first by name, then "+2" for two more. Small marks show:</p>
+<ul><li>ratchet ticks;</li><li>a condition (1:2, FILL...) or a chance in %;</li><li>a dash for glide;</li><li>a red dot for a lock;</li><li>a cream line at the top for micro-timing.</li></ul>
+<p>The knobs set the pattern's <strong>LENGTH</strong> (1-64 steps), <strong>DIV</strong> (a step's note value: 1/32, 1/16T, 1/16, 1/8T, 1/8, 1/4T, 1/4, 1/2, a bar), <strong>DIRECTION</strong> (forward, reverse, ping-pong, random) and <strong>SWING</strong> (50-75 %: every second step later).</p>
+<div class="figs"><figure class="shot"><img src="img/screen-inspector.png" alt="A step held: its notes and all its settings in four groups, LOGIC picked" loading="lazy"><figcaption>A step held</figcaption></figure></div>
+<p><strong>A held step's four groups.</strong> Black keys 1-4 [&lt; &gt;] pick a group; SELECT also turns through them. The outlined group is what the knobs edit:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: Steps (Group, KNOB 1, KNOB 2, KNOB 3, KNOB 4)"><table><thead><tr><th>Group</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody><tr><td>NOTE</td><td>pitch (moves every note)</td><td>velocity</td><td>length, in quarter steps</td><td>glide (into the next step)</td></tr><tr><td>TIME</td><td>micro: -11 to +11 twenty-fourths of a step</td><td>ratchet: 1 to 8 hits</td><td>ramp: flat, up, down</td><td>accent (velocity 127)</td></tr><tr><td>LOGIC</td><td>condition</td><td>chance, %</td><td></td><td></td></tr><tr><td>LOCKS</td><td>lane 1's value</td><td>lane 2's</td><td>lane 3's</td><td>lane 4's</td></tr></tbody></table></div>
+<p>A lock turned below 0 goes off: the lane keeps its value at that step.</p>
+<p><strong>Conditions:</strong></p>
+<ul><li><strong>A:B</strong>, from 1:2 to 8:8: plays on pass A of every B.</li><li><strong>FILL / !FILL</strong>: only while FILL is held, or only while it isn't.</li><li><strong>PRE / !PRE</strong>: only if this track's last conditional step played, or didn't.</li><li><strong>NEI / !NEI</strong>: the same for the track before.</li><li><strong>1ST / !1ST</strong>: only on the pattern's first pass, or never on it.</li></ul>
+<p><strong>Drum tracks.</strong> On a drum track the page shows the lanes as rows. Pick a lane with a black key [PRESETS, or that drum's key on the keybed]; the lane's sound plays as you pick it. A tap adds or removes that lane's hit, so up to four drums can share a step. A brighter cell is a harder hit.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-drums.png" alt="A drum track: eight lanes as rows, two lanes with hits" loading="lazy"><figcaption>A drum track</figcaption></figure></div>
+<p><strong>The menu</strong> (SEL):</p>
+<ul><li>copy and paste the pattern;</li><li>clear it;</li><li>double it (its steps again after itself, up to 64);</li><li>shift it one step left or right;</li><li>undo the last of these.</li></ul>
+<h2 id="recording">Recording</h2>
+<ul><li><strong>Live:</strong> press REC while playing, or hold REC and press PLAY. What you play goes onto the nearest step, with its length. This includes the FM-1's keys (they play notes while recording), the keybed, and MIDI coming in. On the Lanes page, knobs [faders] write locks while recording. Press REC again to stop recording.</li><li><strong>Step record:</strong> press REC while stopped. A red cursor shows the step. Play a note or a chord: it goes on the step, and the cursor moves on. OCT+ [&gt;] leaves a rest, OCT- [&lt;] goes back, and a step key moves the cursor there. Press REC to finish.</li></ul>
+<h2 id="track">Track</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-track.png" alt="The Track page: LOOM-8 SYNTH on channel 2, its four lanes named" loading="lazy"><figcaption>Track</figcaption></figure></div>
+<p>Press <strong>EDIT</strong>.</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: Track (Page, KNOB 1, KNOB 2, KNOB 3, KNOB 4)"><table><thead><tr><th>Page</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody><tr><td>1</td><td>DEVICE: the profile; picking one sets the track's type, lanes and drum notes</td><td>CHANNEL: 1-16</td><td>PORTS: ALL, USB, BLUETOOTH, BT DEVICE, BT HOST (SMK-37: also USB+TRS, TRS)</td><td>TRANSPOSE: ±24 semitones</td></tr><tr><td>2</td><td>TYPE: notes or drums</td><td>PROGRAM: a program change at PLAY and when a scene starts the track, or none</td><td>IN KEY: notes snap to the key; on a drum track, LANE NOTE: the MIDI note of the lane picked on Steps</td><td>VELOCITY: a new step's</td></tr></tbody></table></div>
+<p>The menu resets the track, and copies and pastes the pattern.</p>
+<h2 id="lanes">Lanes</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-lanes.png" alt="The Lanes page: cutoff, resonance, attack and release with this bar&#x27;s locks" loading="lazy"><figcaption>Lanes</figcaption></figure></div>
+<p>Press <strong>ENV</strong> [CHORD].</p>
+<ul><li><strong>Page 1:</strong> sets what each of the four lanes sends: off, CC 0-127, pitch bend or pressure. The page shows each lane's name and this bar's locks.</li><li><strong>Page 2:</strong> the four knobs play the lanes now, and write locks while recording. On the SMK-37 the four faders play lanes 1-4 on every page.</li></ul>
+<h2 id="perform">Perform</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-perform.png" alt="Perform: the sixteen tracks as tiles, lit while they play" loading="lazy"><figcaption>Perform</figcaption></figure></div>
+<p>Press <strong>FX</strong> [KNOB BANK].</p>
+<ul><li>The 16 white keys [pads] mute and unmute the tracks.</li><li>Hold HOME and press one to solo it; solo several to hear only those.</li><li><strong>FILL</strong> is on while black key 1 is held [FADER BANK, from any page]. KNOB 3 latches it on.</li><li>A mute is kept in the scene playing.</li><li>The menu unmutes everything.</li></ul>
+<h2 id="overview">Overview</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-overview.png" alt="Overview: eight tracks with their pattern lengths and playheads" loading="lazy"><figcaption>Overview</figcaption></figure></div>
+<p>Press <strong>LFO</strong> [NOTE REPEAT].</p>
+<ul><li>Eight tracks show at once: the half that holds the selected track. Each has its pattern, its length as a bar and its playhead, so tracks of different lengths can be seen drifting.</li><li>The white keys [pads] pick a track; the black keys mute tracks 1-11.</li><li>The knobs edit the selected track's pattern, as on Steps.</li></ul>
+<h2 id="generate">Generate</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-generate.png" alt="Generate: a Euclid rhythm of 5 hits in 16 steps, previewed" loading="lazy"><figcaption>Generate</figcaption></figure></div>
+<p>Press <strong>ARP</strong>.</p>
+<ul><li><strong>Page 1, Euclid:</strong> STEPS, PULSES and ROTATE spread the hits as evenly as they go.</li><li><strong>Page 2, Random:</strong> DENSITY, RANGE (semitones above the note) and SEED.</li><li><strong>KNOB 4:</strong> the note (or, on a drum track, the lane) the generator writes.</li></ul>
+<p>The grid previews the result. Press <strong>ARP</strong> again (or SEL &gt; PRINT) to write it into the pattern; HOME + SEL undoes it. On a drum track only the lane's hits change. Random notes keep to the key when the scale isn't chromatic.</p>
+<h2 id="arrange-and-the-song">Arrange and the song</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-arrange.png" alt="Arrange: each track&#x27;s pattern, the scene number, the sixteen scenes" loading="lazy"><figcaption>Arrange</figcaption></figure></div>
+<p>Press <strong>HOME</strong> [PATCH].</p>
+<ul><li><strong>Scenes:</strong> the white keys [pads] are scenes 1-16. While playing, a scene starts at the next bar; press its key again to start it at once. An empty scene's key makes it a copy of what is playing.</li><li><strong>Changing a scene:</strong> change patterns (PRESETS, or KNOB 3 here) and mutes, and the scene playing keeps them.</li><li><strong>Mutes:</strong> the black keys mute tracks 1-11.</li><li><strong>Knobs:</strong> TEMPO (hold HOME for tenths), LAUNCH (at the bar, or now), the selected track's PATTERN, and its MUTE.</li><li><strong>The menu:</strong> copy, paste and clear the scene.</li></ul>
+<p>Press <strong>HOME</strong> again for the <strong>Song</strong>:</p>
+<ol><li>Pick a slot with KNOB 1.</li><li>Press a scene's key to add it after that slot.</li><li>Set the slot's scene and its bars (1-64) with KNOB 2 and 3. KNOB 4 decides whether the song loops or stops at the end.</li><li>PLAY on this page plays the song from the slot picked.</li></ol>
+<p>The song changes scene at the bar. The menu plays the song from the slot picked, deletes a slot and clears the song.</p>
+<h2 id="global">Global</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-global.png" alt="Global, page 1: the tempo, sending MIDI clock" loading="lazy"><figcaption>Global</figcaption></figure></div>
+<p>Press <strong>GLO</strong> [GLOBE] and turn SELECT through six pages:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: Global (Page, KNOB 1, KNOB 2, KNOB 3, KNOB 4)"><table><thead><tr><th>Page</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody><tr><td>1 Clock</td><td>TEMPO, 30-300</td><td>CLOCK: internal, send (clock, start and stop on every port), receive (follows a clock coming in; its own tempo while none comes)</td><td>LAUNCH: at the bar, or now</td><td>THRU: MIDI coming in plays the selected track</td></tr><tr><td>2 Key</td><td>ROOT</td><td>SCALE (12)</td><td>KEYS OCT: the keys' octave</td><td></td></tr><tr><td>3 Ports</td><td>USB: DEVICE (a computer), or HOST (a synth or an FM-1 through a powered hub)</td><td>BLUETOOTH: OFF, ON, or AUTO (on, and back to the last device by itself)</td><td>BT DEVICE: picks one of those around; SEL &gt; BT CONNECT connects or lets it go</td><td>[TRS OUT on or off]</td></tr><tr><td>4 Timing</td><td>PORT: USB [USB+TRS], BT HOST or BT DEVICE</td><td>NOTES: that port's notes and CCs, -120 to +120 ms</td><td>CLOCK AT: its clock the same way</td><td>CLOCK: off, clock, or +start (clock, start and stop)</td></tr><tr><td>5 Projects</td><td>SLOT: the four slots (below)</td><td></td><td></td><td></td></tr><tr><td>6 About</td><td>the version, and the MIDI messages in and out on each port</td><td></td><td></td><td></td></tr></tbody></table></div>
+<p>The Ports page lists the Bluetooth devices around, with their signal strength, and shows a passkey when a device asks for one: type it on the device. The Timing page is explained below.</p>
+<h2 id="saving-and-the-four-projects">Saving and the four projects</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-projects.png" alt="Projects: two slots in use, project 2 the current one" loading="lazy"><figcaption>Projects</figcaption></figure></div>
+<p><strong>SAVE</strong> [BT] saves the project into its slot.</p>
+<ul><li><strong>While playing:</strong> writing the flash would stop everything for a moment, so the header says SAVE AT STOP, and the project saves as soon as the playing stops. That includes a stop sent by a clock coming in.</li><li><strong>The four slots:</strong> GLOBAL page 5 lists them, each with its tempo and size. Pick one with KNOB 1, then SEL.</li><li><strong>LOAD PROJECT</strong> loads it, asking first if what is playing has unsaved changes.</li><li><strong>SAVE HERE</strong> saves into it, and it becomes the slot in use. It asks first if the slot holds another project.</li><li><strong>CLEAR SLOT</strong> empties it, asking first.</li><li><strong>At power-on</strong>, the slot in use comes back.</li><li><strong>NEW PROJECT</strong> (in every menu) starts afresh in the same slot, and asks first.</li><li><strong>Slot size:</strong> about 90 KB on the FM-1 and 56 KB on the SMK-37, which is about 5,700 and 3,500 steps in use. A project bigger than that says TOO BIG FOR A SLOT and writes nothing.</li></ul>
+<h2 id="playing-a-loom-8-fm-1">Playing a LOOM-8 FM-1</h2>
+<p>LOOM-8's tracks 1-8 listen on channels 1-8, and a new RELAY-16 project matches: T1 drives the kit, T2-T8 the synths.</p>
+<ul><li><strong>Clock:</strong> RELAY-16 sends clock, start and stop, and LOOM-8 follows with its CLOCK on <em>receive</em> (its default). So LOOM-8's own sequencer starts and stops too: keep its patterns empty, or let them play along.</li><li><strong>Knobs:</strong> the LOOM-8 profiles name LOOM-8's knobs: cutoff, resonance, attack, release, level, pan, the sends and the LFO amount.</li><li><strong>Chords:</strong> a LOOM-8 step holds 4 notes, as RELAY-16's does.</li><li><strong>Recording it in:</strong> hold REC on the LOOM-8 while it plays, and it records what RELAY-16 sends into its own patterns.</li><li><strong>LOOM-8's scenes:</strong> a track on channel 11 with a PROGRAM switches LOOM-8 to scene PROGRAM.</li><li><strong>The kit's notes:</strong> T1 sends LOOM-8's eleven drum keys as the notes of its black keys, F#3 to F#5. That mapping hasn't been checked on a unit. If a lane plays the wrong drum, set its note on TRACK page 2 (LANE NOTE).</li></ul>
+<h2 id="two-loom-8s-and-other-firmwares-over-bluetooth">Two LOOM-8s, and other firmwares over Bluetooth</h2>
+<p>RELAY-16 has two links at once: USB (or, on an SMK-37, the TRS jack, which carries the same stream) and one Bluetooth MIDI device. Each track picks its channel and its ports, so the 16 tracks can be split between two instruments.</p>
+<p><strong>Two LOOM-8 FM-1s, all 16 tracks.</strong> Each LOOM-8 needs channels 1-8, so each takes a link of its own:</p>
+<ol><li>LOOM-8 A on USB (GLOBAL page 3, USB to HOST, a powered hub) or on the SMK-37's TRS jack: T1-T8 as they are.</li><li>LOOM-8 B on Bluetooth: GLOBAL page 3, pick it with KNOB 3, then SEL &gt; BT CONNECT. With BLUETOOTH on AUTO, RELAY-16 connects to it again by itself at power-on and whenever the link drops.</li><li>T9-T16: on TRACK, give them channels 1-8 and set PORTS to BT DEVICE. Give T9 the LOOM-8 KIT device.</li></ol>
+<div class="figs"><figure class="shot"><img src="img/screen-timing.png" alt="GLOBAL page 4, Timing: BT DEVICE&#x27;s notes 20 ms early, so everything else waits 20 ms" loading="lazy"><figcaption>Timing</figcaption></figure></div>
+<p><strong>Timing (GLOBAL page 4).</strong> Bluetooth takes its time. Notes reach a Bluetooth device 10-20 ms after USB's, and a LOOM-8 plays a clock that comes over Bluetooth by its timestamps, about 75 ms late on purpose. Its notes play as they arrive. So each port's notes and clock can go early (minus) or late (plus):</p>
+<ul><li><strong>Notes for LOOM-8 B:</strong> PORT to BT DEVICE, then NOTES to about -15 ms. Tune it by ear against LOOM-8 A: a fast hi-hat on both shows the gap.</li><li><strong>Clock for LOOM-8 B:</strong> CLOCK AT to -75 ms, so its own sequencer, arpeggios and tempo effects line up.</li><li><strong>How early works:</strong> nothing can be sent before the music happens, so everything RELAY-16 sends waits as long as the earliest setting, and the others go that much later. The page says how long. The keys you play live go at once.</li></ul>
+<p><strong>Other firmwares.</strong> A firmware that starts its own sequencer when it hears a MIDI start can be given the clock without start and stop (CLOCK: clock), or no clock at all (CLOCK: off). Any program change a track has is sent again when its device connects, and a passkey a device asks for is shown on GLOBAL page 3. A firmware that listens on fixed channels needs its own link: on one link, a LOOM-8 reacts to almost every channel (1-8 its tracks, 9-10 its effects, 11 its scenes, 12-16 its selected track).</p>
+<p><strong>Limits.</strong> One device on USB at a time, and one Bluetooth link: while RELAY-16 is connected to a Bluetooth device, a computer can't connect to it over Bluetooth. FM-1 to FM-1 over Bluetooth has only been tested in fm1-base's simulation.</p>
+<h2 id="jiant-fm-and-clipper">JIANT FM and Clipper</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-profile-clipper.png" alt="T2 set to CLIPPER: its lanes named CUTOFF, BRITE, TIMBR, MORPH" loading="lazy"><figcaption>Clipper</figcaption></figure></div>
+<p>RELAY-16 can play any firmware that takes MIDI over USB (through USB HOST and a powered hub) or the TRS jack. Two have profiles of their own, on TRACK's DEVICE knob.</p>
+<p><strong>JIANT FM</strong> (<a href="https://github.com/juanjiant-bit/JIANT">juanjiant-bit/JIANT</a>): two profiles, JIANT SYNTH and JIANT DRUM-X.</p>
+<ul><li><strong>Channels:</strong> JIANT's six tracks listen on channels 1-6 (its ROUTE on CH1-6), so give RELAY-16's tracks channels 1-6. Its channel 16 belongs to its song: program changes there jump between sections and projects, so the TRACK page warns when a JIANT track is on 16.</li><li><strong>JIANT SYNTH</strong> names the lanes CUTOFF, RESO, E1 and E2. CC 16-23 (E1-E8) are the engine's own eight knobs, EDIT 1 then EDIT 2; also DELAY, POST CUT, POST RES and DRIVE.</li><li><strong>JIANT DRUM-X</strong> plays JIANT's drum track with the GM drum map: KICK 36, SNARE 38, CLAP 39, CL HAT 42, OP HAT 46, LO TOM 45, HI TOM 50, RIM 37. Notes outside 35-81 play variations on JIANT.</li><li><strong>Clock:</strong> set JIANT's CLOCK to USB (or TRS) to follow RELAY-16.</li></ul>
+<p><strong>Clipper</strong> (<a href="https://github.com/isod89/clipper-fm1">isod89/clipper-fm1</a>): the CLIPPER profile.</p>
+<ul><li><strong>Channels:</strong> one synth, two parts in MULTI. It listens on every channel unless you pick one on Clipper (GLO &gt; MIDI &gt; IN CH). Pick one whenever Clipper shares a cable with another instrument.</li><li><strong>Lanes:</strong> CUTOFF, BRITE, TIMBR and MORPH. The other macros are MOTN and SPACE (CC 18 and 19); also LFO RATE, VIBRATO, LFO FADE and DELAY.</li><li><strong>Program changes</strong> load its sounds.</li><li><strong>Clock:</strong> set SYNC to USB or TRS to follow RELAY-16.</li></ul>
+<div class="figs"><figure class="shot"><img src="img/screen-profile-jiant-drums.png" alt="T1 set to JIANT DRUM-X: the eight lanes named, the kick on step 1" loading="lazy"><figcaption>JIANT DRUM-X</figcaption></figure></div>
+<p><strong>Combinations.</strong> Each link carries one stream, and a LOOM-8 reacts to almost every channel, so a LOOM-8 always needs a link of its own:</p>
+<ul><li><strong>LOOM-8 and JIANT:</strong> LOOM-8 on USB or TRS, JIANT on Bluetooth (if your JIANT has Bluetooth MIDI: newer versions do): 8 + 6 = 14 tracks.</li><li><strong>LOOM-8 and Clipper:</strong> Clipper on the wired link (it has USB and TRS, no Bluetooth), LOOM-8 on Bluetooth.</li><li><strong>Three instruments from an SMK-37:</strong> its USB and its TRS jack carry the same stream, but they are two cables. So JIANT can sit on USB HOST (channels 1-6), Clipper on the TRS jack (IN CH set to, say, 10) and a LOOM-8 on Bluetooth (channels 1-8): 6 + 1 + 8 = 15 tracks. JIANT ignores channels 7-16 and Clipper hears only its own, so they share the stream without trouble. Whether the jack still carries the stream while USB is a host has not been checked on a unit.</li><li><strong>Start messages:</strong> if a firmware should not start its own sequencer when RELAY-16 starts, set that port's CLOCK to "clock" or "off" (GLOBAL page 4).</li></ul>
+<h2 id="midi">MIDI</h2>
+<ul><li><strong>Out:</strong> each track's notes, locks, lanes and program changes go out on its channel to its ports, each port at its own timing (GLOBAL page 4). The SMK-37's TRS jack carries everything USB sends, and also tracks set to TRS alone. With CLOCK on <em>send</em>, clock, start and stop go to every port that takes them (GLOBAL page 4, CLOCK).</li><li><strong>In:</strong> notes from USB, Bluetooth and (FM-1) the TRS jack play the selected track when THRU is on, and record while recording. With THRU on, pitch bend, pressure and CCs go to the selected track's channel too.</li><li><strong>Clock in:</strong> with CLOCK on <em>receive</em>, clock, start, continue and stop drive RELAY-16.</li><li><strong>Stopping:</strong> every note-off still owed is sent. HOME + GLO also sends All Notes Off on every channel.</li></ul>
+<h2 id="installing-and-going-back">Installing and going back</h2>
+<ul><li><strong>From the browser:</strong> use the <a href="../">site</a>, with Chrome or Edge on a computer. Choose your unit's page; it checks that the package is the right one for the unit connected.</li><li><strong>From the command line:</strong> <code>python3 tools/fm1_install.py FILE.fwsc</code> (from fm1-base, with python-rtmidi).</li><li><strong>Going back:</strong> M-VAVE's updater, M-UPGRADE, installs the stock firmware at any time.</li><li><strong>A unit that doesn't start:</strong> hold OCT- [OCTAVE-] while switching on for the update mode, then install again.</li><li><strong>What RELAY-16 writes:</strong> only its own windows of the flash. On the SMK-37, fm1-base's board layer never writes the calibration, the Bluetooth pairing or the key areas. Going back to the stock firmware rebuilds its key mapping.</li></ul>
+</main>
+</div>
+</body>
+</html>
