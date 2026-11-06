@@ -33,8 +33,8 @@ simulator. Installing is at your own risk; M-VAVE's updater puts the stock firmw
 - 16 tracks of 8 patterns, up to 64 steps each. Each pattern has its own length, note value, direction and swing.
 - A step holds a chord of up to 4 notes, with velocity, length, micro-timing, chance, a condition, ratchets, glide,
   accent and 4 CC locks.
-- Each track has a device profile (LOOM-8 synth or kit, GM drums, a drum machine, the stock FM-1, any synth), so its
-  CCs and drum lanes have names.
+- Each track has a device profile (LOOM-8 synth or kit, JIANT FM synth or DRUM-X, Clipper, GM drums, a drum machine,
+  the stock FM-1, any synth), so its CCs and drum lanes have names.
 - 16 scenes, a 32-slot song, mutes, solo, fills, live and step recording, Euclid and random generators, undo.
 - MIDI clock out or in. USB host for a synth or another FM-1 through a powered hub. Bluetooth MIDI both ways.
 - On the SMK-37: the pads are the steps, the keybed plays with velocity, the faders play CC lanes, and the TRS jack

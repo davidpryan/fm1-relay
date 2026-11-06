@@ -242,6 +242,8 @@ int app_expect(const char *what, int *got)
         *got = ui.group;
     else if (!strcmp(what, "card"))           /* the button whose help card shows, -1 none */
         *got = ui.card == NB ? -1 : ui.card;
+    else if (!strcmp(what, "prof"))
+        *got = P.trk[sel_track].prof;
     else if (!strcmp(what, "out_base"))       /* the ms everything waits for the earliest port */
         *got = (int)out_base;
     else if (!strcmp(what, "slot"))

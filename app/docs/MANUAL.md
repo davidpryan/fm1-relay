@@ -4,7 +4,7 @@ RELAY-16 turns the M-VAVE FM-1 or SMK-37 into a sequencer for other instruments.
 sixteen tracks play other gear over MIDI. This manual covers both units. Where the SMK-37 differs, its controls are in
 brackets.
 
-**Status:** version 0.4 has not been tried on a unit yet. It builds for both boards and passes its tests in
+**Status:** version 0.5 has not been tried on a unit yet. It builds for both boards and passes its tests in
 fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, at hand.
 
 - [Quick start: a beat on a LOOM-8 FM-1](#quick-start-a-beat-on-a-loom-8-fm-1)
@@ -23,6 +23,7 @@ fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, a
 - [Saving and the four projects](#saving-and-the-four-projects)
 - [Playing a LOOM-8 FM-1](#playing-a-loom-8-fm-1)
 - [Two LOOM-8s, and other firmwares over Bluetooth](#two-loom-8s-and-other-firmwares-over-bluetooth)
+- [JIANT FM and Clipper](#jiant-fm-and-clipper)
 - [MIDI](#midi)
 - [Installing and going back](#installing-and-going-back)
 
@@ -49,8 +50,8 @@ Not sure what a button does? Hold it for a second: a card explains it.
 - **Pattern** (P1 to P8): a track's steps, up to 64, with its own length, note value, direction and swing.
 - **Step**: up to 4 notes and everything about how they play.
 - **Lane**: one of a track's four CCs (or pitch bend, or pressure). A step can **lock** a lane to a value.
-- **Device profile**: what a track drives (LOOM-8 synth, LOOM-8 kit, GM drums, a drum machine, the stock FM-1, a
-  generic synth). It names the lanes and the drum notes.
+- **Device profile**: what a track drives (LOOM-8 synth, LOOM-8 kit, JIANT synth, JIANT DRUM-X, Clipper, GM drums,
+  a drum machine, the stock FM-1, a generic synth). It names the lanes and the drum notes.
 - **Scene** (S1 to S16): a pattern and a mute for every track.
 - **Song**: scenes in order, each for a number of bars.
 - **Project**: all of it. There are four slots.
@@ -357,6 +358,47 @@ channels needs its own link: on one link, a LOOM-8 reacts to almost every channe
 **Limits.** One device on USB at a time, and one Bluetooth link: while RELAY-16 is connected to a Bluetooth device, a
 computer can't connect to it over Bluetooth. FM-1 to FM-1 over Bluetooth has only been tested in fm1-base's
 simulation.
+
+## JIANT FM and Clipper
+
+![T2 set to CLIPPER: its lanes named CUTOFF, BRITE, TIMBR, MORPH](img/screen-profile-clipper.png "Clipper")
+
+RELAY-16 can play any firmware that takes MIDI over USB (through USB HOST and a powered hub) or the TRS jack. Two have
+profiles of their own, on TRACK's DEVICE knob.
+
+**JIANT FM** ([juanjiant-bit/JIANT](https://github.com/juanjiant-bit/JIANT)): two profiles, JIANT SYNTH and JIANT
+DRUM-X.
+- **Channels:** JIANT's six tracks listen on channels 1-6 (its ROUTE on CH1-6), so give RELAY-16's tracks channels
+  1-6. Its channel 16 belongs to its song: program changes there jump between sections and projects, so the TRACK
+  page warns when a JIANT track is on 16.
+- **JIANT SYNTH** names the lanes CUTOFF, RESO, E1 and E2. CC 16-23 (E1-E8) are the engine's own eight knobs, EDIT 1
+  then EDIT 2; also DELAY, POST CUT, POST RES and DRIVE.
+- **JIANT DRUM-X** plays JIANT's drum track with the GM drum map: KICK 36, SNARE 38, CLAP 39, CL HAT 42, OP HAT 46,
+  LO TOM 45, HI TOM 50, RIM 37. Notes outside 35-81 play variations on JIANT.
+- **Clock:** set JIANT's CLOCK to USB (or TRS) to follow RELAY-16.
+
+**Clipper** ([isod89/clipper-fm1](https://github.com/isod89/clipper-fm1)): the CLIPPER profile.
+- **Channels:** one synth, two parts in MULTI. It listens on every channel unless you pick one on Clipper (GLO > MIDI >
+  IN CH). Pick one whenever Clipper shares a cable with another instrument.
+- **Lanes:** CUTOFF, BRITE, TIMBR and MORPH. The other macros are MOTN and SPACE (CC 18 and 19); also LFO RATE,
+  VIBRATO, LFO FADE and DELAY.
+- **Program changes** load its sounds.
+- **Clock:** set SYNC to USB or TRS to follow RELAY-16.
+
+![T1 set to JIANT DRUM-X: the eight lanes named, the kick on step 1](img/screen-profile-jiant-drums.png "JIANT DRUM-X")
+
+**Combinations.** Each link carries one stream, and a LOOM-8 reacts to almost every channel, so a LOOM-8 always needs
+a link of its own:
+- **LOOM-8 and JIANT:** LOOM-8 on USB or TRS, JIANT on Bluetooth (if your JIANT has Bluetooth MIDI: newer versions do):
+  8 + 6 = 14 tracks.
+- **LOOM-8 and Clipper:** Clipper on the wired link (it has USB and TRS, no Bluetooth), LOOM-8 on Bluetooth.
+- **Three instruments from an SMK-37:** its USB and its TRS jack carry the same stream, but they are two cables. So
+  JIANT can sit on USB HOST (channels 1-6), Clipper on the TRS jack (IN CH set to, say, 10) and a LOOM-8 on Bluetooth
+  (channels 1-8): 6 + 1 + 8 = 15 tracks. JIANT ignores channels 7-16 and Clipper hears only its own, so they share the
+  stream without trouble. Whether the jack still carries the stream while USB is a host has not been checked on a
+  unit.
+- **Start messages:** if a firmware should not start its own sequencer when RELAY-16 starts, set that port's CLOCK to
+  "clock" or "off" (GLOBAL page 4).
 
 ## MIDI
 

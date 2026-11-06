@@ -7,7 +7,7 @@ FM-1 running [LOOM-8](https://github.com/charlesvestal/fm1-loom), a hardware syn
 **Site: <https://davidpryan.github.io/fm1-relay/>** has the web installer for each unit, the
 [manual](https://davidpryan.github.io/fm1-relay/manual/) and the firmware in the browser.
 
-**Status: 0.4, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
+**Status: 0.5, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
 been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGRADE at hand before installing.
 
 ## What it does
@@ -17,7 +17,8 @@ been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGR
 - A step holds up to 4 notes, velocity, length, micro-timing (±11/24 of a step), chance, a condition (A:B, FILL,
   !FILL, PRE, !PRE, NEI, !NEI, 1ST, !1ST), a ratchet (1-8 hits with a velocity ramp), glide, accent, and 4 CC locks.
 - Each track has a destination (MIDI channel and ports) and a device profile that names its lanes and drum notes:
-  LOOM-8 synth, LOOM-8 kit, GM drums, a generic drum machine, the stock FM-1 and a generic synth.
+  LOOM-8 synth and kit, JIANT FM synth and DRUM-X, Clipper, GM drums, a generic drum machine, the stock FM-1 and a
+  generic synth.
 - 4 CC lanes per track (any CC, pitch bend or channel pressure): locked per step, played live from the knobs (and
   the SMK-37's faders), recorded while recording.
 - 16 scenes (a pattern and a mute for every track), launched at the bar or at once; a song of 32 slots.

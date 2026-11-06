@@ -1,0 +1,34 @@
+# Device profiles for other firmwares: JIANT FM and Clipper (the FM-1)
+wait 600
+# T2: CLIPPER (profile 8)
+turn ALGO 1
+wait 30
+tap EDIT
+wait 30
+turn K1 7
+wait 30
+expect prof 8
+wait 1500
+shot profile-clipper.png
+# T3: JIANT SYNTH (profile 6) on channel 16: the warning
+turn ALGO 1
+wait 30
+turn K1 5
+wait 30
+expect prof 6
+turn K2 13
+wait 1500
+shot profile-jiant-ch16.png
+# T1: JIANT DRUM-X (profile 7); a step press writes its kick, note 36
+turn ALGO -2
+wait 30
+turn K1 5
+wait 30
+expect prof 7
+tap SEQ
+wait 30
+tapkey w0
+wait 30
+expect note0 36
+wait 1500
+shot profile-jiant-drums.png

@@ -359,6 +359,11 @@ static void draw_track_page(void)
         }
         cv_text(5, 96, &FONT_XS, tr->quant ? "notes snap to the key" : "notes as played", K_DIM);
     }
+    if ((tr->prof == PR_JIANT || tr->prof == PR_JIANT_DRUMS) && tr->chan > 5u)   /* JIANT: tracks on 1-6 only */
+        cv_text(5, 112, &FONT_XS, tr->chan == 15u ? "ch 16 is JIANT's song channel" : "JIANT plays channels 1-6",
+                K_REC);
+    else if (tr->prof == PR_CLIPPER)
+        cv_text(5, 112, &FONT_XS, "on Clipper: GLO > MIDI > IN CH", K_DIM);
 }
 
 static void draw_lanes_page(void)
