@@ -1,0 +1,22 @@
+# RELAY-16's build settings (fm1-base's tools/build.py: ../build.sh builds every board)
+name = "relay16"               # the build's files: relay16.fwsc, relay16-smk37.fwsc ...
+id_prefix = "FM-1_73"          # package identity: dev FM-1_7300, releases FM-1_73XXYYZZ (SMK-37 Pro_73XXYYZZ)
+usb_manufacturer = "RELAY-16"
+usb_product = "RELAY-16"
+words = "words.tsv"
+ble = true                     # Bluetooth MIDI: a computer or phone connects to RELAY-16
+ble_stack = "own"              # fm1-base's own stack (bt/): nothing of JieLi's linked
+ble_pairing = true             # pairing and an encrypted link, as LOOM-8 has
+ble_central = true             # and RELAY-16 connects to one Bluetooth MIDI device (a synth, another FM-1)
+usb_host = true                # the USB port as a MIDI host (GLOBAL > PORTS): a synth or an FM-1 through a powered hub
+usb_audio_in = false           # no sound of its own: no USB audio interfaces
+usb_audio_out = false
+midi_stamp = true              # incoming clock stamped as it lands (the clock follower)
+# the site and firmware.json (fm1-base docs/FIRMWARE-JSON.md)
+tagline = "a sequencer for other instruments"
+repo = "https://github.com/davidpryan/fm1-relay"
+licence = "MPL-2.0"
+credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). The SMK-37 board layer: M. Geisler (genkigenki) and Kerem Kilic (keremimo). Bluetooth: Optimist's stack by Henri David (MPL-2.0). Fonts: Barlow (SIL OFL 1.1)."
+author = "David Ryan"
+description = "RELAY-16 is a sequencer with no sound of its own. Sixteen tracks play other instruments over USB, Bluetooth and (on the SMK-37) the TRS jack: another FM-1 running LOOM-8, a hardware synth, or a DAW. Steps hold chords, conditions, chance, ratchets, micro-timing and four CC locks; scenes, a song, mutes and fills run the performance."
+tags = ["sequencer", "midi"]

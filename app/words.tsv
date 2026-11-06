@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+# RELAY-16's words for a screen reader (fm1-reader): the text on the screen <TAB> what to say.
+RELAY-16	relay 16
+SEQ	sequence
+BT	bluetooth
+TRS	T R S
+CC	C C
+STEP RECORD	step record
+NOT SAVED	not saved

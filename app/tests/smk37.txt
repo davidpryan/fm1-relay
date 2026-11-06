@@ -1,0 +1,51 @@
+# RELAY-16 on the SMK-37 in the host simulator:
+#   FM1B_BOARD=smk37 base/tools/build.py app --host
+#   app/build/host/relay16-smk37_host app/tests/smk37.txt app/build/host
+wait 600
+shot smk-boot.png
+# the pads are the steps: pad 0 (top left) is step 1
+pad 0 down 100
+wait 20
+pad 0 up
+wait 30
+expect note0 54
+# T2: the keybed plays it and sets the notes a pad writes (C4 is key 12)
+turn ALGO 1
+wait 30
+key37 12 down 90
+wait 20
+key37 12 up
+wait 20
+pad 0 down 100
+wait 20
+pad 0 up
+wait 30
+expect note0 60
+# a pad held and a key played: that step's note
+pad 2 down 100
+wait 20
+key37 16 down 100
+wait 20
+key37 16 up
+wait 20
+pad 2 up
+wait 30
+expect note2 64
+shot smk-steps.png
+padleds
+# the keybed plays T2 live, on channel 2
+out
+key37 19 down 80
+wait 20
+expect_out USB 91 43 50
+key37 19 up
+wait 20
+tap PLAY
+wait 30
+expect playing 1
+expect_out USB 91 3C 64
+wait 600
+tap PLAY
+wait 30
+expect playing 0
+leds
