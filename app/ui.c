@@ -9,7 +9,8 @@
  * The FM-1's names are used below (SEL, HOME ...); the screen shows the SMK-37's own on the SMK (draw.c). */
 
 enum { PG_STEPS, PG_TRACK, PG_LANES, PG_PERF, PG_OVER, PG_GEN, PG_GLOBAL, PG_ARR, PG_SONG, NPG };
-static const uint8_t PG_SUBS[NPG] = {1, 2, 2, 1, 1, 2, 6, 1, 1};
+static const uint8_t PG_SUBS[NPG] = {1, 3, 2, 1, 1, 2, 6, 1, 1};
+static const char *const FM_NAME[NFM] = {"NO", "DIATONIC", "TRANSPOSE", "HARMONY", "CHORD DEG"};
 enum { GL_CLOCK, GL_KEY, GL_PORTS, GL_TIMING, GL_PROJECTS, GL_ABOUT };
 enum { GR_NOTE, GR_TIME, GR_LOGIC, GR_LOCK, NGR };
 
@@ -946,6 +947,15 @@ static void knobs_get(knob_t k[4])
             knob_set(&k[2], "PORTS", PORT_NAME[port_index(tr->ports)], -1);
             signed_text(tr->transpose, t);
             knob_set(&k[3], "TRANSPOSE", t, (tr->transpose + 24) * 100 / 48);
+        } else if (ui.sub[PG_TRACK] == 2) {      /* Follow: how this track follows the conductor; the track that leads */
+            knob_set(&k[0], "FOLLOW", tr->type == TT_DRUM ? "DRUMS" : FM_NAME[tr->follow % NFM], -1);
+            if (P.lead) {
+                s_cpy(t, "T");
+                i_text(P.lead, t + 1);
+            } else {
+                s_cpy(t, "OFF");
+            }
+            knob_set(&k[1], "LEAD", t, -1);
         } else {
             knob_set(&k[0], "TYPE", tr->type == TT_DRUM ? "DRUMS" : "NOTES", -1);
             if (tr->prog == PROG_NONE)
@@ -1192,6 +1202,18 @@ static void knob_turn(uint32_t k, int32_t d)
                 tr->ports = PORT_SETS[step_clamp(port_index(tr->ports), d, 0, NPORTSET - 1)];
             } else {
                 tr->transpose = (int8_t)step_clamp(tr->transpose, d, -24, 24);
+            }
+        } else if (ui.sub[PG_TRACK] == 2) {
+            if (k == 0) {
+                if (tr->type == TT_DRUM) {
+                    app_say("DRUMS", "NEVER FOLLOW");
+                    return;
+                }
+                tr->follow = (uint8_t)step_clamp(tr->follow, d, 0, NFM - 1);
+            } else if (k == 1) {
+                P.lead = (uint8_t)step_clamp(P.lead, d, 0, NTRK);
+            } else {
+                return;
             }
         } else {
             if (k == 0)

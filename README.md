@@ -7,7 +7,7 @@ FM-1 running [LOOM-8](https://github.com/charlesvestal/fm1-loom), a hardware syn
 **Site: <https://davidpryan.github.io/fm1-relay/>** has the web installer for each unit, the
 [manual](https://davidpryan.github.io/fm1-relay/manual/) and the firmware in the browser.
 
-**Status: 0.5, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
+**Status: 0.6, untested on hardware.** It builds for both boards and runs in fm1-base's host simulator. Nothing has
 been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGRADE at hand before installing.
 
 ## What it does
@@ -28,6 +28,8 @@ been tried on a real FM-1 or SMK-37 yet. Keep M-VAVE's stock firmware and M-UPGR
 - Generators: Euclid (steps, pulses, rotate) and Random (density, range, seed), previewed, then printed into the
   pattern. Undo, copy, paste, double, shift.
 - Global key and scale: a track with IN KEY snaps its notes to it.
+- The conductor, from LOOM-8: one track leads, and the tracks that follow it move with its notes through the key
+  (diatonic, transpose, harmony or chord degree), so a chord part or a bass line drives the rest.
 - Four project slots (GLOBAL > PROJECTS: load, save here, clear). SAVE while playing saves at the stop.
 - Help cards: hold any button alone for a second and a card explains it, in the unit's own names.
 - Per-port timing (GLOBAL > TIMING): each port's notes and clock early or late, and which ports get the clock and
@@ -77,7 +79,7 @@ Both boards use the FM-1's names in this list. On the SMK-37 the buttons are pri
 | Control | What it does |
 | --- | --- |
 | SEQ | Steps. On the FM-1, hold it and the keys play the track and set the notes a step press writes |
-| EDIT | Track: device, channel, ports, transpose; page 2: type, program change, IN KEY, velocity |
+| EDIT | Track: device, channel, ports, transpose; page 2: type, program change, IN KEY, velocity; page 3: the conductor (follow, lead) |
 | ENV | Lanes: page 1 picks each lane's CC, page 2 plays them live (and records while recording) |
 | FX (SMK: KNOB BANK) | Perform: the 16 keys or pads mute the tracks; HOME held solos; FILL while black key 1 is held (SMK: FADER BANK held) |
 | LFO | Overview: every track's pattern length and playhead |

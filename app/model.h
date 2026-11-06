@@ -21,6 +21,10 @@
 #define PROG_NONE 0xFFu
 
 enum { TT_NOTE, TT_DRUM, NTT };
+/* how a track follows the conductor (track_t follow; seq.c): the leading track's notes (head_t lead) set the chord and
+ * the degree of its root in the key; a follower's notes are moved by the degree along the scale, by the same
+ * semitones, to the nearest chord tone, or to the chord tone the note's place in the scale picks */
+enum { FM_NO, FM_DIATONIC, FM_TRANSPOSE, FM_HARMONY, FM_DEGREE, NFM };
 enum { DIR_FWD, DIR_REV, DIR_PING, DIR_RAND, NDIR };
 enum { CK_INTERNAL, CK_SEND, CK_RECEIVE, NCK };
 enum { LA_BAR, LA_NOW, NLA };            /* scene and pattern changes: at the next bar, or at once */
@@ -73,7 +77,8 @@ typedef struct {                         /* 44 bytes */
     uint8_t drum[NDLANE];                /* a drum track's lanes: their notes */
     uint8_t lane_sel;                    /* the drum lane a step press writes */
     uint8_t muted;                       /* the live mute (a scene sets it) */
-    uint8_t rsv[10];
+    uint8_t follow;                      /* FM_*: how it follows the leading track (0.5's projects: 0, no) */
+    uint8_t rsv[9];
 } track_t;
 
 typedef struct {
@@ -86,7 +91,9 @@ typedef struct {
     uint8_t keyoct;                      /* the keys' octave, -3..3 stored + 3 */
     uint8_t song_n, song_loop;
     uint8_t scene;                       /* the scene playing (or last launched) */
-    uint8_t rsv[7];
+    uint8_t lead;                        /* the conductor: the track whose notes set the chord, 1..16 = track + 1,
+                                          * 0 none (0.5's projects) */
+    uint8_t rsv[6];
     track_t trk[NTRK];
     phead_t ph[NTRK][NPAT];
     uint8_t pat[NTRK];                   /* each track's pattern now */

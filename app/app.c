@@ -238,6 +238,16 @@ int app_expect(const char *what, int *got)
         *got = E.t[sel_track].pos;
     else if (!strcmp(what, "muted"))
         *got = P.trk[sel_track].muted;
+    else if (!strcmp(what, "follow"))         /* the selected track's follow mode (FM_*) */
+        *got = P.trk[sel_track].follow;
+    else if (!strcmp(what, "lead"))           /* the track that leads, 1..16; 0 none */
+        *got = P.lead;
+    else if (!strcmp(what, "deg"))            /* the conductor's degree, signed */
+        *got = cond_deg;
+    else if (!strcmp(what, "root"))           /* the conductor's chord: its lowest note (0 none yet) */
+        *got = (int)(cond_chord & 0xFFu);
+    else if (!strcmp(what, "chordn"))         /* and its notes, 0..4 */
+        *got = (int)chord_n(cond_chord);
     else if (!strcmp(what, "group"))
         *got = ui.group;
     else if (!strcmp(what, "card"))           /* the button whose help card shows, -1 none */

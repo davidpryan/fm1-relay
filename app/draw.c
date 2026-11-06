@@ -329,12 +329,71 @@ static void draw_inspector(void)
 }
 
 /* ------------------------------------------------------------------- the other pages --- */
+/* Track, page 3: the conductor. How this track follows, the track that leads, the key and the chord the lead set,
+ * and the 16 tracks: the followers filled, the lead outlined */
+static void draw_follow_page(void)
+{
+    const track_t *tr = trk();
+    int32_t ld = lead_track();
+    uint32_t i, w = cond_chord;
+    char t[40], n[8];
+    s_cpy(t, "follows: ");
+    s_cat(t, tr->type == TT_DRUM ? "DRUMS NEVER" : (int32_t)sel_track == ld ? "LEADS" : FM_NAME[tr->follow % NFM]);
+    cv_text(5, 2, &FONT_M, t, tcol(sel_track));
+    if (ld < 0) {
+        cv_text(5, 34, &FONT_XS, "no track leads: the chord is the key's", K_DIM);
+    } else if (P.trk[ld].type == TT_DRUM) {
+        s_cpy(t, "T");
+        i_text(ld + 1, t + 1);
+        s_cat(t, " is drums: it can't lead");
+        cv_text(5, 34, &FONT_XS, t, K_REC);
+    } else {
+        s_cpy(t, "T");
+        i_text(ld + 1, t + 1);
+        s_cat(t, " leads: its notes set the chord");
+        cv_text(5, 34, &FONT_XS, t, K_FG);
+    }
+    s_cpy(t, NOTE_NAME[P.root % 12u]);
+    s_cat(t, " ");
+    s_cat(t, SCALE_NAME[P.scale % NSCALE]);
+    s_cat(t, "  degree ");
+    signed_text(cond_deg, t + text_len(t));
+    cv_text(5, 52, &FONT_XS, t, cond_deg ? K_HI : K_DIM);
+    if (w) {                                     /* the chord: what harmony snaps to */
+        t[0] = 0;
+        for (i = 0; i < 4u; i++) {
+            uint32_t v = w >> (8u * i) & 0xFFu;
+            if (!v)
+                continue;
+            if (t[0])
+                s_cat(t, " ");
+            s_cat(t, NOTE_NAME[v % 12u]);
+        }
+        cv_text(235 - text_w(&FONT_XS, t), 52, &FONT_XS, t, K_FG);
+    }
+    cv_text(5, 72, &FONT_XS, "tracks that follow; the lead outlined", K_DIM);
+    for (i = 0; i < NTRK; i++) {
+        int32_t x = 5 + (int32_t)i * 14;
+        int fol = track_follows(i);
+        cv_rect(x, 88, 12, 16, fol ? tcol(i) : K_PANEL);
+        if ((int32_t)i == ld)
+            outline(x, 88, 12, 16, K_HI);
+        i_text((int32_t)i + 1, n);
+        cv_text(x + (12 - text_w(&FONT_T, n)) / 2, 91, &FONT_T, n, fol ? K_BG : K_DIM);
+    }
+    cv_text(5, 112, &FONT_XS, "K1 how this track follows, K2 the track that leads", K_DIM);
+}
+
 static void draw_track_page(void)
 {
     const track_t *tr = trk();
     const profile_t *pr = &PROFILES[tr->prof % NPROF];
     char t[24];
     uint32_t i;
+    if (ui.sub[PG_TRACK] == 2) {
+        draw_follow_page();
+        return;
+    }
     cv_text(5, 2, &FONT_M, pr->name, tcol(sel_track));
     s_cpy(t, "channel ");
     i_text(tr->chan + 1, t + 8);
@@ -489,7 +548,8 @@ static void draw_global_page(void)
             cv_rect(x, 40, 17, 30, in ? tcol(sel_track) : K_PANEL);
             cv_text(x + 2, 74, &FONT_T, NOTE_NAME[i], in ? K_FG : K_DIM);
         }
-        cv_text(5, 94, &FONT_XS, "tracks with IN KEY on (Track, page 2) snap to it", K_DIM);
+        cv_text(5, 94, &FONT_XS, "tracks with IN KEY on (Track, page 2) snap to it;", K_DIM);
+        cv_text(5, 108, &FONT_XS, "the conductor moves the tracks through it (Track, page 3)", K_DIM);
         break;
     case GL_PORTS: {
         int32_t y = 2;
@@ -717,8 +777,8 @@ static const card_t CARDS[NB] = {
     [B_LFO] = {N_NAMEOF("LFO", "NOTE REPEAT"), "Overview: eight tracks, their pattern lengths and playheads. The "
                N_GRID " keys pick a track. The knobs edit its pattern."},
     [B_EDIT] = {N_NAMEOF("EDIT", "PARA"), "Track: the device it plays, its MIDI channel, ports and transpose. Page 2: "
-                "notes or drums, program change, in key (a drum lane's note), velocity. " N_HOME " + "
-                N_NAMEOF("EDIT", "PARA") ": paste the pattern."},
+                "notes or drums, program change, in key (a drum lane's note), velocity. Page 3: the conductor, how "
+                "this track follows the track that leads. " N_HOME " + " N_NAMEOF("EDIT", "PARA") ": paste the pattern."},
     [B_GLO] = {N_NAMEOF("GLO", "GLOBE"), "Global: clock and tempo, key and scale, ports (USB host, Bluetooth"
                N_NAMEOF("", ", TRS out") "), the four projects, about. " N_HOME " + " N_NAMEOF("GLO", "GLOBE")
                ": all notes off."},

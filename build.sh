@@ -20,8 +20,8 @@ if [ "$1" = "--host" ]; then
     FM1B_BOARD=smk37 FM1B_MODEL=pro "$PYTHON" base/tools/build.py app --host
     ls app/build/host/
     fail=0
-    for t in basic slots timing profiles; do app/build/host/relay-16_host app/tests/$t.txt app/build/host || fail=1; done
-    for t in smk37 slots-smk37 timing-smk37 profiles-smk37; do app/build/host/relay-16-smk37_host app/tests/$t.txt app/build/host || fail=1; done
+    for t in basic slots timing profiles conductor; do app/build/host/relay-16_host app/tests/$t.txt app/build/host || fail=1; done
+    for t in smk37 slots-smk37 timing-smk37 profiles-smk37 conductor-smk37; do app/build/host/relay-16-smk37_host app/tests/$t.txt app/build/host || fail=1; done
     exit $fail
 fi
 REL=""

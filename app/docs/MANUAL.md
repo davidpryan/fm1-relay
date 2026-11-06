@@ -4,7 +4,7 @@ RELAY-16 turns the M-VAVE FM-1 or SMK-37 into a sequencer for other instruments.
 sixteen tracks play other gear over MIDI. This manual covers both units. Where the SMK-37 differs, its controls are in
 brackets.
 
-**Status:** version 0.5 has not been tried on a unit yet. It builds for both boards and passes its tests in
+**Status:** version 0.6 has not been tried on a unit yet. It builds for both boards and passes its tests in
 fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, at hand.
 
 - [Quick start: a beat on a LOOM-8 FM-1](#quick-start-a-beat-on-a-loom-8-fm-1)
@@ -14,6 +14,7 @@ fm1-base's simulator. Keep M-VAVE's stock firmware and its updater, M-UPGRADE, a
 - [Steps](#steps)
 - [Recording](#recording)
 - [Track](#track)
+- [The conductor](#the-conductor)
 - [Lanes](#lanes)
 - [Perform](#perform)
 - [Overview](#overview)
@@ -87,7 +88,7 @@ button held while you use another control is a shift, and shows no card. FADER B
 | Control | What it does |
 | --- | --- |
 | **SEQ** | Steps. On the FM-1, hold it and the keys play the track and set the notes a step press writes. |
-| **EDIT** | Track: the device, channel, ports and transpose; page 2: type, program, in key or lane note, velocity. |
+| **EDIT** | Track: the device, channel, ports and transpose; page 2: type, program, in key or lane note, velocity; page 3: the conductor. |
 | **ENV** | Lanes: page 1 picks each lane's CC, page 2 plays them live. |
 | **FX** [KNOB BANK] | Perform: mutes, solo, fill. |
 | **LFO** | Overview: every track's length and playhead. |
@@ -211,8 +212,36 @@ Press **EDIT**.
 | --- | --- | --- | --- | --- |
 | 1 | DEVICE: the profile; picking one sets the track's type, lanes and drum notes | CHANNEL: 1-16 | PORTS: ALL, USB, BLUETOOTH, BT DEVICE, BT HOST (SMK-37: also USB+TRS, TRS) | TRANSPOSE: ±24 semitones |
 | 2 | TYPE: notes or drums | PROGRAM: a program change at PLAY and when a scene starts the track, or none | IN KEY: notes snap to the key; on a drum track, LANE NOTE: the MIDI note of the lane picked on Steps | VELOCITY: a new step's |
+| 3 | FOLLOW: how this track follows the conductor (below) | LEAD: the track that leads, or OFF | | |
 
 The menu resets the track, and copies and pastes the pattern.
+
+## The conductor
+
+![Track, page 3: T2 follows diatonic, T3 leads; the chips show the tracks that follow](img/screen-follow.png "The conductor")
+
+LOOM-8's conductor, for other instruments: one track **leads**, and the others **follow** it, so a chord part or a
+bass line on one track moves the rest through the key. Press **EDIT** and turn SELECT to page 3.
+
+- **LEAD** (KNOB 2, the same on every track) picks the track whose notes set the chord: T1 to T16, or OFF. Each
+  note it plays (all the notes on a step, or the keys held together on it) sets the chord. A single note is taken as
+  the root of its triad in the key (in C major, C gives C E G and G gives G B D); two or more notes are the chord as
+  played. The lowest note's place in the scale sets the **degree**, the nearer way: in C major a G takes the followers
+  down a fourth and an F takes them up a fourth, so a bass line moves them as little as a chord would. The leading
+  track plays as written, and still leads when muted. A drum track can't lead.
+- **FOLLOW** (KNOB 1) sets how this track follows, steps and live keys alike:
+  - **NO**: as written.
+  - **DIATONIC**: each note moves by the degree along the key's scale (C major, lead on G: C4 becomes G3, E4 becomes B3).
+  - **TRANSPOSE**: the same distance in semitones.
+  - **HARMONY**: each note snaps to the nearest tone of the chord itself, in its own register.
+  - **CHORD DEG**: the note's place in the scale picks a chord tone (root, third, fifth, ... cycled), kept in the note's octave: a scale run becomes an arpeggio of the chord.
+- Drum tracks never follow. Until the lead has played, the degree is 0 and the harmony modes act as diatonic.
+- The page shows the key, the degree and the chord the lead set, and the 16 tracks: the followers filled in their
+  colour, the lead outlined.
+
+The lead is judged first on every tick, so a follower's step on the same line hears the chord. IN KEY (page 2) still
+snaps a diatonic or transposed follower to the key; a harmony follower plays the chord's tones as they are. The lead
+and each track's mode are saved with the project; a project from 0.5 loads with no lead and nothing following.
 
 ## Lanes
 

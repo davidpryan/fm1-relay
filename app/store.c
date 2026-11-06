@@ -85,6 +85,7 @@ static void track_defaults(uint32_t i)
     t->rem[0] = 60;
     t->lane_sel = 0;
     t->muted = 0;
+    t->follow = FM_NO;
     for (p = 0; p < NPAT; p++) {
         P.ph[i][p].len = 16;
         P.ph[i][p].div = DIV_16;
@@ -123,8 +124,10 @@ static int head_sane(void)                       /* a loaded head with nothing o
     uint32_t t, p;
     if (P.magic != PROJ_MAGIC || P.version != PROJ_VERSION || P.bpm10 < 300u || P.bpm10 > 3000u)
         return 0;
+    if (P.lead > NTRK)
+        return 0;
     for (t = 0; t < NTRK; t++) {
-        if (P.trk[t].type >= NTT || P.trk[t].prof >= NPROF || P.pat[t] >= NPAT)
+        if (P.trk[t].type >= NTT || P.trk[t].prof >= NPROF || P.pat[t] >= NPAT || P.trk[t].follow >= NFM)
             return 0;
         for (p = 0; p < NPAT; p++)
             if (!P.ph[t][p].len || P.ph[t][p].len > NSTEP || P.ph[t][p].div >= NDIV || P.ph[t][p].dir >= NDIR)

@@ -1,0 +1,69 @@
+# The conductor on the SMK-37: T3 leads, T2 follows it (the keybed sets a pad's notes).
+#   FM1B_BOARD=smk37 base/tools/build.py app --host
+#   app/build/host/relay-16-smk37_host app/tests/conductor-smk37.txt app/build/host
+wait 600
+# T3: G4 on step 1
+turn ALGO 2
+wait 30
+expect track 2
+key37 19 down 90
+wait 20
+key37 19 up
+wait 20
+pad 0 down 100
+wait 20
+pad 0 up
+wait 30
+expect note0 67
+# T2: C4 on step 1
+turn ALGO -1
+wait 30
+expect track 1
+key37 12 down 90
+wait 20
+key37 12 up
+wait 20
+pad 0 down 100
+wait 20
+pad 0 up
+wait 30
+expect note0 60
+# PARA page 3: T2 follows DIATONIC, T3 leads
+tap EDIT
+wait 30
+turn SELECT 2
+wait 30
+turn K1 1
+wait 30
+expect follow 1
+turn K2 3
+wait 30
+expect lead 3
+wait 1500
+shot smk-follow.png
+# PLAY: T3's G4 sets the chord G B D, degree -3; T2's C4 goes out as G3
+out
+tap PLAY
+wait 30
+expect playing 1
+expect_out USB 92 43 64
+expect_out USB 91 37 64
+expect deg -3
+expect root 67
+expect chordn 3
+tap PLAY
+wait 30
+# the keybed on the lead sets the chord: C4 and E4 held on T3 are C E, with G from nothing: a two-note chord
+turn ALGO 1
+wait 30
+expect track 2
+key37 12 down 90
+wait 20
+key37 16 down 90
+wait 20
+expect root 60
+expect chordn 2
+expect deg 0
+key37 12 up
+key37 16 up
+wait 20

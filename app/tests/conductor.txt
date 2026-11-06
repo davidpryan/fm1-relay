@@ -1,0 +1,100 @@
+# The conductor on the FM-1: T3 leads, T2 follows it.
+#   base/tools/build.py app --host && app/build/host/relay-16_host app/tests/conductor.txt app/build/host
+wait 600
+# T3: G4 on step 1 (hold SEQ, play G4, let go, tap the step)
+turn ALGO 2
+wait 30
+expect track 2
+press SEQ
+key 14 down
+wait 30
+key 14 up
+release SEQ
+wait 30
+tapkey w0
+wait 30
+expect note0 67
+# T2: C4 on step 1
+turn ALGO -1
+wait 30
+expect track 1
+press SEQ
+key 7 down
+wait 30
+key 7 up
+release SEQ
+wait 30
+tapkey w0
+wait 30
+expect note0 60
+# Track page 3: T2 follows DIATONIC, T3 leads
+tap EDIT
+wait 30
+turn SELECT 2
+wait 30
+turn K1 1
+wait 30
+expect follow 1
+turn K2 3
+wait 30
+expect lead 3
+wait 1500
+shot follow.png
+# PLAY: T3's G4 sets the chord G B D and the degree -3 (the nearer way); T2's C4 goes out a fourth down, G3
+out
+tap PLAY
+wait 30
+expect playing 1
+expect_out USB 92 43 64
+expect_out USB 91 37 64
+expect deg -3
+expect root 67
+expect chordn 3
+tap PLAY
+wait 30
+# HARMONY: C4 snaps to the nearest chord tone, B3
+turn K1 2
+wait 30
+expect follow 3
+out
+tap PLAY
+wait 30
+expect_out USB 91 3B 64
+tap PLAY
+wait 30
+# the lead's keys set the chord too: C4 held on T3 is C E G, degree 0
+turn ALGO 1
+wait 30
+expect track 2
+press SEQ
+key 7 down
+wait 30
+expect root 60
+expect chordn 3
+expect deg 0
+key 7 up
+release SEQ
+wait 30
+# a drum track never follows
+turn ALGO -2
+wait 30
+expect track 0
+turn SELECT 2
+wait 30
+turn K1 1
+wait 30
+expect follow 0
+# saved, and back after a restart
+tap SAVE
+wait 200
+expect dirty 0
+reboot
+wait 600
+expect lead 3
+turn ALGO 1
+wait 30
+tap EDIT
+wait 30
+turn SELECT 2
+wait 30
+expect follow 3

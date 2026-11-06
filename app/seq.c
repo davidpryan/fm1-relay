@@ -277,6 +277,192 @@ static uint32_t quantize(uint32_t note)                 /* the nearest note of t
     return note;
 }
 
+/* ------------------------------------------------------------------- the conductor --- */
+/* LOOM-8's conductor, as RELAY-16 has it: one track leads (P.lead), and each note it plays sets the chord (all the
+ * notes on its step, or the keys held together; a single note is the root of its diatonic triad) and the degree of
+ * the chord's root in the project's key, the nearer way (in C major a G takes the others down a fourth, an F up a
+ * fourth), so a bass line moves them as little as a chord would. A track that follows (track_t follow, FM_*) has its
+ * notes moved, steps and live keys alike: by that degree along the scale (DIATONIC), by the same semitones
+ * (TRANSPOSE), to the nearest tone of the chord (HARMONY), or to the chord tone the note's place in the scale picks
+ * (CHORD DEG: root, third, fifth ... cycled, in the note's octave). The leading track plays as written and leads while
+ * muted too; drum tracks never follow. The lead is judged first on every tick (tick_order), so the followers' steps
+ * on the same line hear its chord. Until it has played, the degree is 0 and harmony acts as diatonic. */
+static volatile int8_t cond_deg;                        /* the degree the lead set; 0 at PLAY */
+static volatile uint32_t cond_chord;                    /* the chord: up to 4 notes, a byte each, ascending; 0 none */
+
+static uint32_t key_mask(void) { return SCALE_MASK[P.scale < NSCALE ? P.scale : 0]; }
+static int32_t mask_len(uint32_t m)
+{
+    int32_t n = 0;
+    while (m) {
+        n += (int32_t)(m & 1u);
+        m >>= 1;
+    }
+    return n;
+}
+static int32_t floor_div(int32_t a, int32_t b) { return a >= 0 ? a / b : -((-a + b - 1) / b); }
+static int32_t clamp_note(int32_t n) { return n < 0 ? 0 : n > 127 ? 127 : n; }
+
+/* the note's degree (octave * the scale's length + its index) from the key's tonic; a note outside the scale snaps to
+ * the nearest scale note first (ties go down) */
+static int32_t note_to_deg(int32_t note, int32_t key, uint32_t mask)
+{
+    int32_t pc = ((note - key) % 12 + 12) % 12, d, idx = 0, i, oct;
+    if (!(mask >> pc & 1u)) {
+        for (d = 1; d < 12; d++) {
+            if (mask >> ((pc - d + 12) % 12) & 1u) {
+                note -= d;
+                break;
+            }
+            if (mask >> ((pc + d) % 12) & 1u) {
+                note += d;
+                break;
+            }
+        }
+        pc = ((note - key) % 12 + 12) % 12;
+    }
+    for (i = 0; i < pc; i++)
+        idx += (int32_t)(mask >> i & 1u);
+    oct = floor_div(note - key, 12);
+    return oct * mask_len(mask) + idx;
+}
+static int32_t deg_to_note(int32_t deg, int32_t key, uint32_t mask)
+{
+    int32_t len = mask_len(mask), oct = floor_div(deg, len), idx = deg - oct * len, pc = 0, i;
+    for (i = 0; i < 12; i++)
+        if (mask >> i & 1u) {
+            if (idx == 0) {
+                pc = i;
+                break;
+            }
+            idx--;
+        }
+    return key + oct * 12 + pc;
+}
+static int32_t scale_step(int32_t note, int32_t steps)   /* the note moved `steps` degrees along the key's scale */
+{
+    uint32_t mask = key_mask();
+    return clamp_note(deg_to_note(note_to_deg(note, P.root, mask) + steps, P.root, mask));
+}
+static int32_t lead_track(void) { return P.lead >= 1u && P.lead <= NTRK ? (int32_t)P.lead - 1 : -1; }
+static int track_follows(uint32_t tr)                   /* a note track with a follow mode, and not the lead */
+{
+    const track_t *t = &P.trk[tr];
+    return t->type == TT_NOTE && t->follow && t->follow < NFM && (int32_t)tr != lead_track();
+}
+static uint32_t chord_n(uint32_t w)
+{
+    uint32_t n = 0, i;
+    for (i = 0; i < 4u; i++)
+        n += (w >> (8u * i) & 0xFFu) != 0u;
+    return n;
+}
+static uint32_t chord_word(const uint8_t *nt, uint32_t n)   /* the notes (1..127; the rest skipped) ascending, no
+                                                              * doubles, a byte each */
+{
+    uint8_t t[4];
+    uint32_t m = 0, k = 0, i, w = 0;
+    for (i = 0; i < n && m < 4u; i++)
+        if (nt[i] >= 1u && nt[i] <= 127u)
+            t[m++] = nt[i];
+    for (i = 1; i < m; i++) {
+        uint8_t v = t[i];
+        uint32_t j = i;
+        while (j > 0 && t[j - 1u] > v)
+            t[j] = t[j - 1u], j--;
+        t[j] = v;
+    }
+    for (i = 0; i < m; i++)
+        if (!k || t[i] != t[k - 1u])
+            t[k++] = t[i];
+    for (i = 0; i < k; i++)
+        w |= (uint32_t)t[i] << (8u * i);
+    return w;
+}
+static int32_t chord_snap(int32_t note, uint32_t w)     /* harmony: the nearest chord tone, register kept, ties down */
+{
+    int32_t best = note, bd = 128;
+    uint32_t i;
+    for (i = 0; i < 4u; i++) {
+        int32_t t = (int32_t)(w >> (8u * i) & 0xFFu), c, k;
+        if (!t)
+            continue;
+        c = note - ((note - t) % 12 + 12) % 12;         /* the tone at or under the note */
+        for (k = 0; k < 2; k++, c += 12) {
+            int32_t d = c > note ? c - note : note - c;
+            if (d < bd || (d == bd && c < best))
+                best = c, bd = d;
+        }
+    }
+    return clamp_note(best);
+}
+static int32_t chord_deg_note(int32_t note, uint32_t w)   /* the note's place in the scale picks a chord tone */
+{
+    uint32_t mask = key_mask();
+    int32_t n = (int32_t)chord_n(w), len = mask_len(mask), idx, tone;
+    if (n < 1)
+        return note;
+    if (len < 1)
+        len = 1;
+    idx = ((note_to_deg(note, P.root, mask) % len) + len) % len;
+    tone = (int32_t)(w >> (8 * (idx % n)) & 0xFFu);
+    return clamp_note(tone + 12 * floor_div(note - tone + 6, 12));   /* the octave nearest the note */
+}
+/* the lead's notes (a step's, or the keys held): the degree the lowest sets, the nearer way, and the chord */
+static void cond_set(const uint8_t *nt, uint32_t n)
+{
+    uint32_t mask = key_mask(), i, m = 0;
+    int32_t lo = 0, len = mask_len(mask), d;
+    uint8_t tri[3];
+    for (i = 0; i < n; i++)
+        if (nt[i] >= 1u && nt[i] <= 127u) {
+            if (!lo || nt[i] < lo)
+                lo = nt[i];
+            m++;
+        }
+    if (!lo)
+        return;                                         /* (a rest keeps the chord it heard) */
+    if (len < 1)
+        len = 1;
+    d = note_to_deg(lo, P.root, mask) - note_to_deg(60 + (int32_t)P.root, P.root, mask);
+    d = ((d % len) + len) % len;
+    if (d > len / 2)
+        d -= len;
+    cond_deg = (int8_t)d;
+    if (m == 1) {                                       /* one note: the diatonic triad on it */
+        tri[0] = (uint8_t)lo;
+        tri[1] = (uint8_t)scale_step(lo, 2);
+        tri[2] = (uint8_t)scale_step(lo, 4);
+        cond_chord = chord_word(tri, 3);
+    } else {
+        cond_chord = chord_word(nt, n);
+    }
+}
+static int32_t cond_note(uint32_t tr, int32_t note)     /* a follower's note, moved as its mode says */
+{
+    uint32_t mode = P.trk[tr].follow, w = cond_chord, mask;
+    int32_t d0;
+    if (mode >= FM_HARMONY) {
+        if (w)
+            return mode == FM_HARMONY ? chord_snap(note, w) : chord_deg_note(note, w);
+        mode = FM_DIATONIC;                             /* no chord yet: as diatonic */
+    }
+    if (!cond_deg)
+        return note;
+    if (mode == FM_DIATONIC)
+        return scale_step(note, cond_deg);
+    mask = key_mask();                                  /* transpose: the degree's distance from the tonic, in semitones */
+    d0 = note_to_deg(60 + (int32_t)P.root, P.root, mask);
+    return clamp_note(note + deg_to_note(d0 + cond_deg, P.root, mask) - deg_to_note(d0, P.root, mask));
+}
+static uint32_t tick_order(uint32_t i)                  /* the tracks' order on a tick: the lead first */
+{
+    int32_t ld = lead_track();
+    if (ld < 0)
+        return i;
+    return i == 0u ? (uint32_t)ld : i <= (uint32_t)ld ? i - 1u : i;
+}
+
 static int32_t track_note(uint32_t tr, uint32_t note)   /* a step's note as it goes out: -1 none */
 {
     const track_t *t = &P.trk[tr];
@@ -288,6 +474,11 @@ static int32_t track_note(uint32_t tr, uint32_t note)   /* a step's note as it g
     n = (int32_t)note + t->transpose;
     if (n < 0 || n > 127)
         return -1;
+    if (track_follows(tr)) {
+        n = cond_note(tr, n);
+        if (t->follow >= FM_HARMONY && cond_chord)
+            return n;                                   /* (a chord tone is no scale note) */
+    }
     if (t->quant && P.scale != SC_CHROM)
         n = (int32_t)quantize((uint32_t)n);
     return n;
@@ -390,6 +581,18 @@ static void step_play(uint32_t tr, const step_t *st, uint32_t line, uint32_t div
         if (ok && on && st->chance < 100u)
             ok = rnd() % 100u < st->chance;
         E.t[tr].last = (uint8_t)ok;
+    }
+    if (ok && on && (int32_t)tr == lead_track() && t->type == TT_NOTE) {   /* the lead: its notes set the chord,
+                                                                          * muted too */
+        uint8_t nt[NNOTE];
+        uint32_t m = 0;
+        for (i = 0; i < NNOTE; i++)
+            if (st->note[i] != NOTE_NONE) {
+                int32_t n = (int32_t)st->note[i] + t->transpose;
+                if (n >= 1 && n <= 127)
+                    nt[m++] = (uint8_t)n;
+            }
+        cond_set(nt, m);
     }
     if (!ok || !track_heard(tr))
         return;
@@ -529,11 +732,12 @@ static void engine_tick(void)                           /* one engine tick */
         clock_out(0xF8);
     if ((now + 2u * TPQ) % (4u * TPQ) == 0u)
         song_bar();
-    for (tr = 0; tr < NTRK; tr++) {
-        const phead_t *ph = &P.ph[tr][P.pat[tr]];
+    for (tr = 0; tr < NTRK; tr++) {                     /* (the lead first: the followers hear its chord) */
+        uint32_t t = tick_order(tr);
+        const phead_t *ph = &P.ph[t][P.pat[t]];
         uint32_t div = DIV_TICKS[ph->div < NDIV ? ph->div : DIV_16];
         if ((now + div / 2u) % div == 0u)
-            track_step(tr, now + div / 2u);
+            track_step(t, now + div / 2u);
     }
     ev_run(now);
     E.tick = now + 1u;
@@ -546,6 +750,8 @@ static void seq_start(int from_clock)
     nev = 0;
     E.tick = 0;
     E.acc24 = 0;
+    cond_deg = 0;                                       /* (the conductor starts on the tonic, no chord yet) */
+    cond_chord = 0;
     E.last24 = now24();
     E.clk_in = 0;
     for (tr = 0; tr < NTRK; tr++) {
@@ -574,8 +780,8 @@ static void seq_start(int from_clock)
     }
     if (P.clock == CK_SEND && !from_clock)
         clock_out(0xFA);
-    for (tr = 0; tr < NTRK; tr++)                       /* the steps on the first line, judged now */
-        track_step(tr, 0);
+    for (tr = 0; tr < NTRK; tr++)                       /* the steps on the first line, judged now (the lead first) */
+        track_step(tick_order(tr), 0);
     E.playing = 1;
     plat_unlock(f);
 }
@@ -782,6 +988,14 @@ static void live_on(uint32_t tr, uint32_t note, uint32_t vel)
     key_chan[note] = (uint8_t)(t->chan & 15u);
     key_ports[note] = t->ports;
     midi_send(pkt3(0x90u | key_chan[note], (uint32_t)n, vel ? vel : 1u), t->ports);
+    if ((int32_t)tr == lead_track() && t->type == TT_NOTE) {   /* the lead's keys: the ones held are the chord */
+        uint8_t nt[NNOTE];
+        uint32_t i, m = 0;
+        for (i = 1; i < 128u && m < NNOTE; i++)
+            if (key_note[i] != 0xFFu && key_chan[i] == key_chan[note])
+                nt[m++] = key_note[i];
+        cond_set(nt, m);
+    }
 }
 
 static void live_off(uint32_t note)
