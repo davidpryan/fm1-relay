@@ -491,7 +491,7 @@ static void draw_global_page(void)
             cv_text(60, y, &FONT_XS, plat_usb_host_state() == USBH_CONNECTED ? (nm[0] ? nm : "device") :
                                      "host: waiting (powered hub)", K_FG);
         } else {
-            cv_text(60, y, &FONT_XS, plat_usb_session() ? "computer connected" : "computer", K_FG);
+            cv_text(60, y, &FONT_XS, "computer", K_FG);
         }
         y += 16;
         cv_text(5, y, &FONT_XS, "BT HOST", K_DIM);
@@ -645,7 +645,7 @@ static void draw_hints(int32_t y)
                 e = N_BAR; f = "bar"; g = "hold"; h = "step";
             }
             break;
-        case PG_ARR: a = N_GRID; b = "scene, again: now"; c = PLAT_SMK37 ? N_HOME : N_SIDE;
+        case PG_ARR: a = N_GRID; b = "scene"; c = PLAT_SMK37 ? N_HOME : N_SIDE;
             d = PLAT_SMK37 ? "again: song" : "mute"; e = N_PRESET; f = "pattern"; g = N_ALGO; h = "track"; break;
         case PG_SONG: a = N_GRID; b = "add scene"; c = "PLAY"; d = "from slot"; e = N_SEL; f = "menu"; break;
         case PG_PERF: a = N_GRID; b = "mute"; c = N_HOME "+"; d = "solo"; e = N_SEL; f = "unmute all"; break;

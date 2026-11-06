@@ -1617,6 +1617,8 @@ static void keys_smk(void)
         static int pb_was = 0, mod_was = -1;
         int pb = plat_wheel(PLAT_WHEEL_PITCH), md = plat_wheel(PLAT_WHEEL_MOD);
         const track_t *t = trk();
+        if (mod_was < 0)
+            mod_was = md;                        /* (the first reading: where the wheel rests, nothing sent) */
         if (pb != pb_was) {
             uint32_t v = (uint32_t)(pb + 8192);
             midi_send(pkt3(0xE0u | (t->chan & 15u), v & 0x7Fu, v >> 7), t->ports);

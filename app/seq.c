@@ -49,6 +49,25 @@ typedef struct {
 } engine_t;
 static engine_t E;
 
+/* the engine's time base, 24 ticks a microsecond: the device's 24 MHz clock; the host simulator's own milliseconds
+ * (its plat_ticks24 is the computer's clock, while the script's time runs much faster) */
+static uint32_t now24(void)
+{
+#ifdef PLAT_HOST
+    return plat_ms() * 24000u;
+#else
+    return plat_ticks24();
+#endif
+}
+static uint32_t in24(void)                              /* when the last MIDI message in landed */
+{
+#ifdef PLAT_HOST
+    return now24();
+#else
+    return plat_midi_in_t24();
+#endif
+}
+
 static uint32_t rnd(void)
 {
     uint32_t x = E.rng ? E.rng : 0x1234567u;
@@ -128,7 +147,8 @@ static void ev_run(uint32_t now)                        /* what is due: note-off
         for (i = 0; i < nev;) {
             ev_t *e = &evq[i];
             if ((int32_t)(e->due - now) <= 0 && e->off == (pass == 0u)) {
-                if (e->off || plat_midi_out_room(ports_to(e->ports)) >= 8u)
+                uint32_t room = e->off ? 0u : plat_midi_out_room(ports_to(e->ports));
+                if (e->off || room == 0u || room >= 8u)  /* (0: nobody listens there; a few: keep them for note-offs) */
                     midi_send(e->pkt, e->ports);
                 *e = evq[--nev];
             } else {
@@ -430,7 +450,7 @@ static void seq_start(int from_clock)
     nev = 0;
     E.tick = 0;
     E.acc24 = 0;
-    E.last24 = plat_ticks24();
+    E.last24 = now24();
     E.clk_in = 0;
     for (tr = 0; tr < NTRK; tr++) {
         E.t[tr].pos = -1;
@@ -546,14 +566,14 @@ static void thru(uint32_t st, uint32_t d1, uint32_t d2)  /* MIDI in plays the se
 
 static void clock_in(uint32_t st)
 {
-    uint32_t now24 = plat_midi_in_t24();
+    uint32_t at24 = in24();
     if (P.clock != CK_RECEIVE)
         return;
     if (st == 0xF8u) {
-        uint32_t d = now24 - E.clk_t24;
+        uint32_t d = at24 - E.clk_t24;
         if (E.clk_t24 && d > 2000u * PLAT_TICKS_PER_US && d < 250000u * PLAT_TICKS_PER_US)
             E.clk_per24 = E.clk_per24 ? (E.clk_per24 * 3u + d) / 4u : d;
-        E.clk_t24 = now24;
+        E.clk_t24 = at24;
         E.clk_ms = plat_ms();
         E.follow = 1;
         if (E.playing)
@@ -563,7 +583,7 @@ static void clock_in(uint32_t st)
     } else if (st == 0xFBu) {
         if (!E.playing) {
             E.playing = 1;
-            E.last24 = plat_ticks24();
+            E.last24 = now24();
         }
     } else if (st == 0xFCu) {
         seq_stop();
@@ -613,17 +633,17 @@ static uint32_t tempo10_now(void)                       /* the tempo playing, x 
 
 void app_tick(void)
 {
-    uint32_t now24 = plat_ticks24(), per, n = 0;
+    uint32_t t24 = now24(), per, n = 0;
     midi_read();
     if (E.follow && plat_ms() - E.clk_ms > 500u)        /* the clock stopped: our own tempo again */
         E.follow = 0;
     if (!E.playing) {
-        E.last24 = now24;
+        E.last24 = t24;
         return;
     }
     per = tick_per24();
-    E.acc24 += now24 - E.last24;
-    E.last24 = now24;
+    E.acc24 += t24 - E.last24;
+    E.last24 = t24;
     if (P.clock == CK_RECEIVE && E.follow) {
         uint32_t target = E.clk_in * 4u;                /* never ahead of the clock's next pulse, never behind it */
         while (E.tick + 4u <= target && n < 16u) {

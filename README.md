@@ -99,18 +99,18 @@ wheels go to the selected track. The TRS jack is MIDI out: everything USB sends,
 
 ## Install
 
-The packages are built into `build/relay16/`:
+The packages are built into `build/relay16/` and attached to the GitHub release:
 
 | File | For |
 | --- | --- |
-| `relay16.fwsc` | the FM-1 |
-| `relay16-smk37.fwsc` | the SMK-37 Pro (and the Starrykey 37 Play) |
-| `relay16-smk37-elite.fwsc` | the SMK-37 Elite |
-| `relay16-smk37-mke.fwsc` | the MKE-P37 |
+| `relay16-0.1.fwsc` | the FM-1 |
+| `relay16-smk37-0.1.fwsc` | the SMK-37 Pro (and the Starrykey 37 Play) |
+| `relay16-smk37-elite.fwsc` | the SMK-37 Elite (a development identity: a release name would be over 20 characters) |
+| `relay16-smk37-mke-0.1.fwsc` | the MKE-P37 |
 
-1. Install `python-rtmidi` once: `pip3 install python-rtmidi`
+1. Install `python-rtmidi` once (`python3.11 -m pip install python-rtmidi`; this Mac already has it for Python 3.11)
 2. Connect the FM-1 or SMK-37 over USB, switched on, running any firmware.
-3. Run `python3 base/tools/fm1_install.py build/relay16/<file>.fwsc`
+3. Run `python3.11 base/tools/fm1_install.py build/relay16/<file>.fwsc`
 
 The installer checks that the package matches the unit: an SMK-37 package is refused on an FM-1, and an FM-1 package
 on an SMK-37. To go back, install M-VAVE's firmware with M-UPGRADE. If a unit doesn't start, its rescue mode takes an
